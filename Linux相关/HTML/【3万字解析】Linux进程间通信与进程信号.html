@@ -1,0 +1,1147 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>【3万字解析】Linux进程间通信与进程信号</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__html"><p></p><div class="toc"><h3>文章目录</h3><ul><li><a href="#_6">前言</a></li><li><a href="#_12">一、进程通信的介绍</a></li><ul><li><a href="#1__14">1. 进程通信的概念</a></li><li><a href="#2__17">2. 进程通信的目的</a></li><li><a href="#3__23">3. 进程通信的方式</a></li><li><a href="#4__25">4. 通信的本质</a></li></ul><li><a href="#_40">二、进程通信之管道</a></li><ul><li><a href="#1___42">1.  管道概念</a></li><li><a href="#2__55">2. 匿名管道</a></li><ul><li><a href="#1_57">（1）匿名管道的原理</a></li><li><a href="#2_78">（2）匿名管道的创建</a></li><li><a href="#3_94">（3）匿名管道通信方式的理解</a></li><li><a href="#4_101">（4）管道读写规则</a></li><li><a href="#5_116">（5）管道的特点</a></li></ul><li><a href="#3__141">3. 命名管道</a></li><ul><li><a href="#1_143">（1）命名管道原理</a></li><li><a href="#2_154">（2）命名管道的创建</a></li><ul><li><a href="#A__156">A. 通过系统命令创建</a></li><li><a href="#B__169">B. 通过系统调用创建</a></li></ul><li><a href="#3_376">（3）命名管道的规则</a></li></ul><li><a href="#4__385">4. 匿名管道和命名管道的区别</a></li></ul><li><a href="#system_V__395">三、system V 版本的通信</a></li><ul><li><a href="#1_system_V_IPC_396">1. system V IPC简述</a></li><li><a href="#2_system_V__403">2. system V 共享内存（概念）</a></li><ul><li><a href="#1_405">（1）通信方式</a></li><li><a href="#2_414">（2）通信原理</a></li><li><a href="#3_426">（3）特性（重要）</a></li><li><a href="#4_435">（4）管理共享内存的数据结构</a></li></ul><li><a href="#3_system_V__474">3. system V 共享内存（操作）</a></li><ul><li><a href="#1_480">（1）申请共享内存</a></li><ul><li><a href="#A_IPCftok_481">A. 获取IPC键值(ftok接口)</a></li><li><a href="#B_shmget_519">B. 共享内存创建接口(shmget接口)</a></li></ul><li><a href="#2shmat_564">（2）共享内存挂接到地址空间（shmat接口）</a></li><li><a href="#3shmdt_593">（3）去关联共享内存（shmdt接口）</a></li><li><a href="#4_609">（4）释放共享内存</a></li><ul><li><a href="#A__612">A. 通过系统命令释放共享内存</a></li><li><a href="#B_shmctl_617">B. 通过系统调用释放共享内存(shmctl接口)</a></li></ul></ul><li><a href="#4__674">4. 使用共享内存实现通信</a></li></ul><li><a href="#_686">四、进程信号</a></li><ul><li><a href="#1__688">1. 信号处理的周期</a></li><li><a href="#2__694">2. 信号的分类</a></li><li><a href="#3__704">3. 信号产生前----设置信号处理方式</a></li><li><a href="#4__732">4. 信号产生时----信号的产生方式</a></li><ul><li><a href="#1_734">（1）通过终端按键产生信号</a></li><ul><li><a href="#A_ctrlcctr_736">A. ctrl+c和ctr+\的作用</a></li><li><a href="#B_coredump_762">B. coredump核心转储</a></li><li><a href="#C_coredump_798">C. coredump标志位</a></li></ul><li><a href="#2_813">（2）通过系统调用产生信号</a></li><ul><li><a href="#A_kill_817">A. kill函数</a></li><li><a href="#B_raise_831">B. raise函数</a></li><li><a href="#C_abort_841">C. abort函数</a></li></ul><li><a href="#3_861">（3）软件条件产生信号</a></li><ul><li><a href="#A_SIGPIPE_863">A. SIGPIPE信号</a></li><li><a href="#B_SIGALRM_877">B. SIGALRM信号</a></li></ul><li><a href="#4_890">（4）硬件异常产生信号</a></li><ul><li><a href="#A_CPU_896">A. CPU产生异常</a></li><li><a href="#B_MMU_904">B. MMU产生异常</a></li></ul></ul><li><a href="#5__915">5. 信号产生后----信号的保存方式</a></li><ul><li><a href="#1_917">（1）信号相关概念</a></li><li><a href="#2_932">（2）信号在内核中的表示</a></li><li><a href="#3sigset_t_996">（3）信号集(sigset_t)</a></li><li><a href="#4_1014">（4）信号集操作函数</a></li><li><a href="#5sigprocmask_1036">（5）阻塞信号集操作函数(sigprocmask接口)</a></li><li><a href="#6sigpending_1066">（6）未决信号集操作函数(sigpending接口)</a></li></ul><li><a href="#6_1098">6、信号产生后----捕捉信号的时机</a></li><ul><li><a href="#1_1104">（1）内核态&amp;&amp;用户态</a></li><li><a href="#2_1130">（2）内核空间&amp;&amp;用户空间</a></li><li><a href="#3_1155">（3）内核如何实现信号的捕捉</a></li><li><a href="#4sigaction_1175">（4）sigaction</a></li></ul></ul></ul></div><p></p>
+<hr>
+<h1><a id="_6"></a>前言</h1>
+<p><font color="purple">在此之前我们已经学习了（<strong>1）进程概念（2）进程控制（3）进程和文件的关系</strong>。现在我们需要学习<strong>进程与进程之间的关系（进程通信）</strong>。</font></p>
+<hr>
+<h1><a id="_12"></a>一、进程通信的介绍</h1>
+<h2><a id="1__14"></a>1. 进程通信的概念</h2>
+<p>进程间通信（IPC，Interprocess communication）是一组编程接口，让程序员能够协调不同的进程，使之能在一个操作系统里同时运行，并相互传递、交换信息。这使得一个程序能够在同一时间里处理许多用户的要求。IPC方法包括管道（PIPE）、消息排队、旗语、共用内存以及套接字（socket）</p>
+<h2><a id="2__17"></a>2. 进程通信的目的</h2>
+<ul>
+<li>数据传输：一个进程需要将它的数据交给另外一个进程</li>
+<li>资源共享：多个进程之间共享同样的资源</li>
+<li>通知事件：一个进程需要向另一个或一组进程发送消息，通知它（它们）发生了某种事件（如进程终止时要通知父进程）。</li>
+<li>进程控制：有些进程希望完全控制另一个进程的执行（如Debug进程），此时控制进程希望能够拦截另一个进程的所有陷入和异常，并能够及时知道它的状态改变</li>
+</ul>
+<h2><a id="3__23"></a>3. 进程通信的方式</h2>
+<h2><a id="4__25"></a>4. 通信的本质</h2>
+<p>进程在运行的时候具有独立性，即俩个进程的数据是各自私有的，就算是父子进程随意他们的数据是共享的但一旦方式写入。就会发生<strong>写时拷贝</strong>，数据各自私有一份。所以进程在进行数据层面上的通信是笔记困难的。</p>
+<p>所以进程之间要想进行通信，需要借助第三方资源。这个<mark>第三方资源不属于这些进行通信进程中的任何一个</mark>。<strong>这些进程可以向这个第三方资源里面写入数据或者读取数据，进而实现进程间通信</strong>。</p>
+<p>而这个第三方资源通常是OS提供的内存区域（资源由OS系统中的不同模块提供，不同的模块提供就产生了不同的通信方式），这个资源是所有进程共享的。</p>
+<p><img src="https://img-blog.csdnimg.cn/980f64f55607480b8432af8c1cac942c.png" alt="在这里插入图片描述"></p>
+<p><mark><strong>进程间通信的本质是让不同进程看到同一份资源，然后进程与公共资源之间进行数据拷贝（进行读写操作）。</strong></mark></p>
+<hr>
+<h1><a id="_40"></a>二、进程通信之管道</h1>
+<h2><a id="1___42"></a>1.  管道概念</h2>
+<p>我们把从一个进程连接到另一个进程的一个数据流称为一个“管道”。它的特点是单向传输数据的，先进先出。</p>
+<p>例如：我们使用统计一个文件中代码的行数。<br>
+<img src="https://img-blog.csdnimg.cn/7e4afb0489dc4ba0b2afa8629f0e112c.png" alt="在这里插入图片描述"></p>
+<p>其中cat指令和wc指令是<strong>两个程序当他们运行起来时就变成进程</strong>cat通过标准输出将数据放到管道中wc再从管道中拿数据，至此就完成了进程间通信。</p>
+<p>用wc指令我们可以计算文件的Byte数、字数、或是列数，若不指定文件名称、或是所给予的文件名为"-"，则wc指令会从标准输入设备读取数据。</p>
+<p>wc常用参数如下：<br>
+<img src="https://img-blog.csdnimg.cn/91f34dd850974231b71db6db5d0aa04a.png" alt="在这里插入图片描述"></p>
+<h2><a id="2__55"></a>2. 匿名管道</h2>
+<h3><a id="1_57"></a>（1）匿名管道的原理</h3>
+<blockquote>
+<p>匿名管道的进程间通信，仅限于有血缘关系的进程之间进行通信，<strong>多用于父子进程之间的通信或者兄弟进程之间的通信</strong></p>
+</blockquote>
+<p>管道的通信原理，其实是让两个进程之间可以看到同一份资源，操作系统创建管道，<strong><mark>其实就是在内核空间里创建一个缓冲区，用来当作管道文件</mark></strong>，管道的大小一般是64kb，这时，<strong>只要两个进程对这个缓冲区进行读写操作</strong>，就能实现进程间通信。</p>
+<p>使用ulimit -a查看管道大小：<br>
+<img src="https://img-blog.csdnimg.cn/cae127d7fb504ca69279076c1ab16888.png" alt="在这里插入图片描述"></p>
+<p>这内核中缓冲区是操作系统帮进程创建的，两个进程怎么才能找到这个缓冲区，并且对这个缓冲区进行操作呢？</p>
+<p>进程在创建管道的时候，会对应的创建出两个file结构体，<strong>这两个file结构体里，分别有对这个缓冲区的读和写操作的方法</strong>，而这个进程只需要拿到这两个file结构体所对应的文件描述符，就能对这个缓冲区进行读写操作。</p>
+<p><img src="https://img-blog.csdnimg.cn/e41815bb9e6a4d3b8bee1abe685ebc05.png" alt="在这里插入图片描述"></p>
+<p>对于父子俩个进程的通信，<mark><strong>让两个进程都拿到这两个文件描述符</strong></mark>，就是让父进程创建管道，获得对应的文件描述符，然后父进程创建子进程，<strong>子进程就会复制父进程的文件描述符到自己的进程中（如果俩个进程没有关系，由于管道是匿名的，所以俩个进程不能看到同一份文件）</strong>，这时两个进程都会拿到这个缓冲区的操作方法，自然都可以对这个缓冲区进行读写操作，实现进程间通信。</p>
+<p>其中文件描符符fd[0]保存了管道文件的读端，fd[1]保存了管道文件的写端。</p>
+<h3><a id="2_78"></a>（2）匿名管道的创建</h3>
+<p><img src="https://img-blog.csdnimg.cn/704ec7f2dab94a4186b0430e178f915d.png" alt="在这里插入图片描述"></p>
+<ul>
+<li>参数：pipefd[2]是一个输出型参数，传入pipefd的地址，在函数运行过程中，操作系统会帮进程创建管道，并且把能对管道操作的操作文件的文件描述符填入数组中：<br>
+<img src="https://img-blog.csdnimg.cn/0ebefbf48b9c4a548e139b412dbfbf68.png" alt="在这里插入图片描述"></li>
+<li>返回值：成功返回0，失败返回错误码</li>
+</ul>
+<p>例子：</p>
+<p><img src="https://img-blog.csdnimg.cn/8d29787d7d0241fd90d75f373e9d247c.png" alt="在这里插入图片描述"><br>
+运行结果如下：<br>
+<img src="https://img-blog.csdnimg.cn/dbafe13bca034758a4d7cb592d172e9e.png" alt="在这里插入图片描述"></p>
+<h3><a id="3_94"></a>（3）匿名管道通信方式的理解</h3>
+<ol>
+<li>父进程是否可以通过创建全局缓冲区来和子进程通信呢？<br>
+<img src="https://img-blog.csdnimg.cn/0a40f322374744b6bf0eceb6769fa6d7.png" alt="在这里插入图片描述"></li>
+<li>子进程在写入数据的时候，为什么父进程没有对写入的区域进行写时拷贝？<br>
+<img src="https://img-blog.csdnimg.cn/da9eb125d9fd439ead9d7fa8852636b1.png" alt="在这里插入图片描述"></li>
+</ol>
+<h3><a id="4_101"></a>（4）管道读写规则</h3>
+<ol>
+<li><strong><mark>情况1：读端关写端开</mark></strong>。如果所有管道读端对应的文件描述符被关闭，<strong>则write操作会产生信号SIGPIPE,进而导致write进程退出。</strong>（无法读的话那么写也就没有意义了，所以OS系统将写的进程杀掉）</li>
+<li><strong><mark>情况2；写端关读端开</mark></strong>。写端进程将写端关闭，那么在管道里面的数据读取完毕之后，<strong>read将会返回0，然后会继续执行后续代码不会被挂起。</strong></li>
+<li><strong><mark>情况3：当没有数据可读时</mark></strong>。写端进程不向管道中写入了，而读端进程一直在读那么此时读端进程会因为管道内没有数据被挂起直到管道内有数据了读端进程才会被唤醒。<strong>就是read调用挂起，直到数据来为止</strong>。</li>
+<li><mark><strong>情况4；当管道被写满时</strong></mark>。读端进程不读而写端进程一直在往管道里面写入数据当管道被写满时写端进程会被挂起，直到读端进程读取一定量的数据之后写端进程才会向管道中写入数据。<strong>write调用挂起，直到数据被度走。</strong></li>
+</ol>
+<p>下面我们来看一下上面四种情况中的<strong>情况一</strong>：<br>
+读端进程已经将读端给关闭了也就意味着没有进程读取了，此时写端进程都写入也就变得没有什么意义了。OS将其杀死也是非常合理的所以了此时写端进程被异常终止属于异常退出说明写端进程必然收到了某种信号。下面我们来验证一下写端进程收到了什么信号。</p>
+<p><img src="https://img-blog.csdnimg.cn/cf0c23c3d5d0488a80d4df37a6c81712.png" alt="在这里插入图片描述"><br>
+运行结果如下：<br>
+<img src="https://img-blog.csdnimg.cn/0c40da4b72c54cc4a9d431f82fdfdaae.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/5212f158bd63417d94ca365a8dad6868.png" alt="在这里插入图片描述"></p>
+<h3><a id="5_116"></a>（5）管道的特点</h3>
+<ol>
+<li><strong><mark>管道的生命周期是随进程的</mark></strong>：</li>
+</ol>
+<p>管道的本质是通过文件进行通信，也就是说管道依赖于文件系统，打开文件的进程退出后该打开的文件会被释放掉（这里的释放时该进程的角度，实际是否释放空间取决于有管该管道文件的所有进程是否都退出了）。<strong>也就是管道的生命周期随进程。</strong></p>
+<ol start="2">
+<li><strong><mark>管道自带同步和互斥机制</mark></strong></li>
+</ol>
+<p>我们将多个执行流共同看到的资源叫做<strong>临界资源</strong>，管道在一个时刻只允许一个进程对其写入和读取。临界资源需要保护，如果我们不对临界资源进行保护，就可能出现一个时刻有多个执行流对同一个管道进行操作。会导致同时读或者写和交叉问题以及数据不一致。为了避免这些问题OS会对管道的操作进行同步和互斥。</p>
+<blockquote>
+<p>互斥：一个公共资源一个时刻只能被一个进程访问不允许多个进程同时访问这个公共资源<br>
+同步：在保证数据安全的情况下，让多个执行流访问临界资源具有一定的顺序性。</p>
+</blockquote>
+<ol start="3">
+<li><strong><mark>管道是流式服务</mark></strong></li>
+</ol>
+<p>进程A向管道写入数据，进程B向管道里面读取数据是任意的。这就叫做流式服务，与之对应的有数据服务：数据服务有明确的分割拿数据按照报文段拿。</p>
+<ol start="4">
+<li><strong><mark>管道时半双工</mark></strong></li>
+</ol>
+<p>管道是半双工的，数据只能向一个方向流动；需要双方通信时，需要建立起两个管道。</p>
+<blockquote>
+<p>半双工：是指传输过程中同时只能向一个方向传输，一方的数据传输结束之后，另外一方再回应。双方传输数据是不可以同时进行的。<br>
+全双工：是指两方能同时发送和接受数据。在这种情况下就没有拥堵的危险，数据的传输也就更快。</p>
+</blockquote>
+<h2><a id="3__141"></a>3. 命名管道</h2>
+<h3><a id="1_143"></a>（1）命名管道原理</h3>
+<p><strong>匿名管道只能用于两个有亲缘关系的进程之间通信</strong>，是因为匿名管道创建的缓冲区没有标识符，只有返回给进程的文件描述符，文件描述符是匿名管道的操作句柄，而有亲缘关系的进程，复制了创建管道的进程的文件描述符表，也就有了管道操作的文件描述符，就能对管道进行读写操作，完成通信。</p>
+<p><strong>但是如果两个没有亲缘关系的进程要进行通信，那么我们就要借助命名管道</strong>，命名管道其实是一个特殊的文件，它创建出来是会显示到目录里，可以查看到的文件，两个进程通过这个文件，就能操作同一个管道，也就是访问同一块资源，完成通信。</p>
+<p>命名管道和匿名管道只是创建和打开方式不同，一旦管道创建并且打开后，命名管道和匿名管道就没有区别了。</p>
+<blockquote>
+<p><strong>注意</strong>：普通文件很难做到通信即使做到了也解决不了一些安全问题。<br>
+命名管道和匿名管道是一样的都是内存文件并将都不会将数据刷新到磁盘中。</p>
+</blockquote>
+<h3><a id="2_154"></a>（2）命名管道的创建</h3>
+<h4><a id="A__156"></a>A. 通过系统命令创建</h4>
+<p>命名管道可以在shell命令行中直接创建：</p>
+<pre><code class="prism language-bash">$ <span class="token function">mkfifo</span> filename
+</code></pre>
+<p><img src="https://img-blog.csdnimg.cn/3ba564f6fac34e50a416ab344a9eab67.png" alt="在这里插入图片描述"></p>
+<p>我们可以发现此时创建出来的文件类型是p类型代表该文件是命名管道，下面我们使用这个命名管道实现进程A和进程B直接的通信（其中进程A和进程B是毫不相关的两个进程）</p>
+<p><img src="https://img-blog.csdnimg.cn/15fc92690e084b379354438bf2dc2c24.png" alt="在这里插入图片描述"><br>
+我们在一个终端下每隔一秒将字符串“hello lzh"重定向到管道中，然后新建一个中端让其从管道中读取数据完成毫不相关的两个进程之间进行通信。</p>
+<h4><a id="B__169"></a>B. 通过系统调用创建</h4>
+<p>命名管道也可以在一个进程中创建:</p>
+<pre><code class="prism language-cpp"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/types.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/stat.h&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">mkfifo</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>pathname<span class="token punctuation">,</span> mode_t mode<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<ul>
+<li>第一个参数<br>
+其中mkfifo的第一个参数pathname表示的是要创建命名管道的文件。<br>
+如果pathname以路径的方式给出那么命名管道将在pathnaem路径下创建<br>
+如果pathname以文件名的形式给出那么命名管道将会在当前路径下创建（当前路径在文件哪里已经详细解释过了）</li>
+<li>第二个参数：<br>
+mkfifo的第二个参数mode是管道文件的权限比如我们创建管道文件时将管道文件的权限设置为0664。（最终权限需要与umask结合）</li>
+<li>返回值<br>
+成功返回0，失败返回-1.</li>
+</ul>
+<p><strong>使用命名管道实现server和client之间的通信</strong></p>
+<p>下面我们来实现一下服务端和客户端之间的通信，注意进行通信之前先要启动服务端，因为我们要服务端把命名管道创建出来并且以读的方式打开这个文件，而客户端以写的方式打开管道文件并且以写的方式打开。这样服务端就可以收到客户端发过来的数据了。</p>
+<pre><code class="prism language-cpp"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">pragma</span> <span class="token expression">once</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;iostream&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;sys/types.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;sys/stat.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;fcntl.h&gt;</span></span>
+<span class="token keyword">using</span> <span class="token keyword">namespace</span> std<span class="token punctuation">;</span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name">MY_FIFO</span> <span class="token string">"./fifo"</span></span>
+</code></pre>
+<p>服务端对应代码：</p>
+<pre><code class="prism language-cpp"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">"comm.h"</span></span>
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+       <span class="token comment">//umask(0);//注意尽在当前进程有效不会影响系统的权限掩码</span>
+   <span class="token keyword">if</span><span class="token punctuation">(</span><span class="token function">mkfifo</span><span class="token punctuation">(</span>MY_FIFO<span class="token punctuation">,</span><span class="token number">0666</span><span class="token punctuation">)</span><span class="token operator">&lt;</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+       cerr<span class="token operator">&lt;&lt;</span><span class="token string">"mkfifo fail"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+       <span class="token keyword">return</span> <span class="token number">1</span><span class="token punctuation">;</span>
+   <span class="token punctuation">}</span>
+   <span class="token comment">//只需要文件操作即可</span>
+
+   <span class="token keyword">int</span> fd<span class="token operator">=</span><span class="token function">open</span><span class="token punctuation">(</span>MY_FIFO<span class="token punctuation">,</span>O_RDONLY<span class="token punctuation">)</span><span class="token punctuation">;</span>
+   <span class="token keyword">if</span><span class="token punctuation">(</span>fd<span class="token operator">&lt;</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+       cerr<span class="token operator">&lt;&lt;</span><span class="token string">"open fail"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+       <span class="token keyword">return</span> <span class="token number">2</span><span class="token punctuation">;</span>
+   <span class="token punctuation">}</span>
+
+    <span class="token comment">//业务逻辑可以进行对应的读写</span>
+    <span class="token keyword">while</span><span class="token punctuation">(</span><span class="token boolean">true</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+    <span class="token keyword">char</span> buffer<span class="token punctuation">[</span><span class="token number">64</span><span class="token punctuation">]</span><span class="token operator">=</span><span class="token punctuation">{</span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    ssize_t s<span class="token operator">=</span><span class="token function">read</span><span class="token punctuation">(</span>fd<span class="token punctuation">,</span>buffer<span class="token punctuation">,</span><span class="token keyword">sizeof</span><span class="token punctuation">(</span>buffer<span class="token punctuation">)</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span><span class="token punctuation">(</span>s<span class="token operator">&gt;</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+        <span class="token comment">//会多一个/n</span>
+    
+     buffer<span class="token punctuation">[</span>s<span class="token punctuation">]</span><span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span>
+     <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"client:%s\n"</span><span class="token punctuation">,</span>buffer<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    <span class="token keyword">else</span> <span class="token keyword">if</span><span class="token punctuation">(</span>s<span class="token operator">==</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span><span class="token comment">//对方关闭</span>
+      cout<span class="token operator">&lt;&lt;</span><span class="token string">"client quit"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+      <span class="token keyword">break</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">else</span><span class="token punctuation">{</span>
+        cout<span class="token operator">&lt;&lt;</span><span class="token string">"读取失败"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+        <span class="token keyword">break</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token punctuation">}</span>
+   <span class="token function">close</span><span class="token punctuation">(</span>fd<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>此时我们将客户端跑起来之后命名管道就已经被创建。所以客户端只需要用写的方式打开这个命名管道即可，这样就可以实现客户端和服务端之间的通信</p>
+<p>对应客户端代码：</p>
+<pre><code class="prism language-cpp"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">"comm.h"</span></span>
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+  <span class="token comment">//管道文件已经被创建只需要打开就可以了</span>
+  <span class="token keyword">int</span> fd<span class="token operator">=</span><span class="token function">open</span><span class="token punctuation">(</span>MY_FIFO<span class="token punctuation">,</span>O_WRONLY<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token comment">//不需要创建了</span>
+  <span class="token keyword">if</span><span class="token punctuation">(</span>fd<span class="token operator">&lt;</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+      cerr<span class="token operator">&lt;&lt;</span><span class="token string">"open fail"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+  <span class="token comment">//业务逻辑</span>
+  <span class="token keyword">while</span><span class="token punctuation">(</span><span class="token boolean">true</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+     <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"请输入:###########################"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">fflush</span><span class="token punctuation">(</span><span class="token constant">stdout</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+     <span class="token keyword">char</span> buffer<span class="token punctuation">[</span><span class="token number">64</span><span class="token punctuation">]</span><span class="token operator">=</span><span class="token punctuation">{</span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+      <span class="token comment">//先把标准输入拿道client进程的内部</span>
+      ssize_t s<span class="token operator">=</span><span class="token function">read</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">,</span>buffer<span class="token punctuation">,</span><span class="token keyword">sizeof</span><span class="token punctuation">(</span>buffer<span class="token punctuation">)</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token keyword">if</span><span class="token punctuation">(</span>s<span class="token operator">&gt;</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+          buffer<span class="token punctuation">[</span>s<span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span>
+          cout<span class="token operator">&lt;&lt;</span>buffer<span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+          <span class="token function">write</span><span class="token punctuation">(</span>fd<span class="token punctuation">,</span>buffer<span class="token punctuation">,</span><span class="token function">strlen</span><span class="token punctuation">(</span>buffer<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+
+
+   <span class="token function">close</span><span class="token punctuation">(</span>fd<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>其中客户端和服务端的退出关系是：<br>
+当客户端退出时服务端将数据读取完毕之后就读不到数据此时服务端也就去执行其他代码去了，当服务端退出之后客户端的写入也就没有任何意义了此时操作系统会向客户端发送13号信号SIGPIPE信号将客户端终止。<br>
+注意：命名管道的文件的大小是不会变的因为不会将数据刷新到磁盘中。</p>
+<p><strong>使用命名管道来派发任务：</strong><br>
+两个进程之间进行通信并不是只能发送字符串服务端可以对客户端的发送过来的数据进行处理;在这里只需要将上面的代码稍微改一下就可以了，改变服务端处理信息的方式即可。</p>
+<pre><code class="prism language-cpp"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">"comm.h"</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;stdlib.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;wait.h&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+   <span class="token comment">//umask(0);//注意尽在当前进程有效不会影响系统的权限掩码</span>
+   <span class="token keyword">if</span><span class="token punctuation">(</span><span class="token function">mkfifo</span><span class="token punctuation">(</span>MY_FIFO<span class="token punctuation">,</span><span class="token number">0666</span><span class="token punctuation">)</span><span class="token operator">&lt;</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+       cerr<span class="token operator">&lt;&lt;</span><span class="token string">"mkfifo fail"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+       <span class="token keyword">return</span> <span class="token number">1</span><span class="token punctuation">;</span>
+   <span class="token punctuation">}</span>
+   <span class="token comment">//只需要文件操作即可</span>
+
+   <span class="token keyword">int</span> fd<span class="token operator">=</span><span class="token function">open</span><span class="token punctuation">(</span>MY_FIFO<span class="token punctuation">,</span>O_RDONLY<span class="token punctuation">)</span><span class="token punctuation">;</span>
+   <span class="token keyword">if</span><span class="token punctuation">(</span>fd<span class="token operator">&lt;</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+       cerr<span class="token operator">&lt;&lt;</span><span class="token string">"open fail"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+       <span class="token keyword">return</span> <span class="token number">2</span><span class="token punctuation">;</span>
+   <span class="token punctuation">}</span>
+
+    <span class="token comment">//业务逻辑可以进行对应的读写</span>
+    <span class="token keyword">while</span><span class="token punctuation">(</span><span class="token boolean">true</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+    <span class="token keyword">char</span> buffer<span class="token punctuation">[</span><span class="token number">64</span><span class="token punctuation">]</span><span class="token operator">=</span><span class="token punctuation">{</span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    ssize_t s<span class="token operator">=</span><span class="token function">read</span><span class="token punctuation">(</span>fd<span class="token punctuation">,</span>buffer<span class="token punctuation">,</span><span class="token keyword">sizeof</span><span class="token punctuation">(</span>buffer<span class="token punctuation">)</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span><span class="token punctuation">(</span>s<span class="token operator">&gt;</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+        <span class="token comment">//会多一个/n</span>
+     buffer<span class="token punctuation">[</span>s<span class="token punctuation">]</span><span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span>
+     <span class="token keyword">if</span><span class="token punctuation">(</span><span class="token function">strcmp</span><span class="token punctuation">(</span>buffer<span class="token punctuation">,</span><span class="token string">"show"</span><span class="token punctuation">)</span><span class="token operator">==</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+
+         <span class="token keyword">if</span><span class="token punctuation">(</span><span class="token function">fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">==</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+          <span class="token comment">//子进程</span>
+           <span class="token function">execl</span><span class="token punctuation">(</span><span class="token string">"/usr/bin/ls"</span><span class="token punctuation">,</span><span class="token string">"ls"</span><span class="token punctuation">,</span><span class="token string">"-l"</span><span class="token punctuation">,</span><span class="token constant">NULL</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+           <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+         <span class="token punctuation">}</span>
+          <span class="token function">waitpid</span><span class="token punctuation">(</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">,</span><span class="token constant">NULL</span><span class="token punctuation">,</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+     <span class="token punctuation">}</span>
+     <span class="token keyword">else</span> <span class="token keyword">if</span><span class="token punctuation">(</span><span class="token function">strcmp</span><span class="token punctuation">(</span>buffer<span class="token punctuation">,</span><span class="token string">"run"</span><span class="token punctuation">)</span><span class="token operator">==</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+           <span class="token keyword">if</span><span class="token punctuation">(</span><span class="token function">fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">==</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+          <span class="token comment">//子进程</span>
+           <span class="token function">execl</span><span class="token punctuation">(</span><span class="token string">"/usr/bin/sl"</span><span class="token punctuation">,</span><span class="token string">"sl"</span><span class="token punctuation">,</span><span class="token constant">NULL</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+           <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+         <span class="token punctuation">}</span>
+          <span class="token function">waitpid</span><span class="token punctuation">(</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">,</span><span class="token constant">NULL</span><span class="token punctuation">,</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+     <span class="token punctuation">}</span>
+    <span class="token keyword">else</span> <span class="token punctuation">{</span>
+     <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"client:%s\n"</span><span class="token punctuation">,</span>buffer<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    
+    <span class="token punctuation">}</span>
+    <span class="token keyword">else</span> <span class="token keyword">if</span><span class="token punctuation">(</span>s<span class="token operator">==</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span><span class="token comment">//对方关闭</span>
+      cout<span class="token operator">&lt;&lt;</span><span class="token string">"client quit"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+      <span class="token keyword">break</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">else</span><span class="token punctuation">{</span>
+        cout<span class="token operator">&lt;&lt;</span><span class="token string">"读取失败"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+        <span class="token keyword">break</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+   <span class="token function">close</span><span class="token punctuation">(</span>fd<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<pre><code class="prism language-cpp"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">"comm.h"</span></span>
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+  <span class="token comment">//管道文件已经被创建只需要打开就可以了</span>
+  <span class="token keyword">int</span> fd<span class="token operator">=</span><span class="token function">open</span><span class="token punctuation">(</span>MY_FIFO<span class="token punctuation">,</span>O_WRONLY<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token comment">//不需要创建了</span>
+  <span class="token keyword">if</span><span class="token punctuation">(</span>fd<span class="token operator">&lt;</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+      cerr<span class="token operator">&lt;&lt;</span><span class="token string">"open fail"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+  <span class="token comment">//业务逻辑</span>
+  <span class="token keyword">while</span><span class="token punctuation">(</span><span class="token boolean">true</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+     <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"请输入:###########################"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">fflush</span><span class="token punctuation">(</span><span class="token constant">stdout</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+     <span class="token keyword">char</span> buffer<span class="token punctuation">[</span><span class="token number">64</span><span class="token punctuation">]</span><span class="token operator">=</span><span class="token punctuation">{</span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+      <span class="token comment">//先把标准输入拿道client进程的内部</span>
+      ssize_t s<span class="token operator">=</span><span class="token function">read</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">,</span>buffer<span class="token punctuation">,</span><span class="token keyword">sizeof</span><span class="token punctuation">(</span>buffer<span class="token punctuation">)</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token keyword">if</span><span class="token punctuation">(</span>s<span class="token operator">&gt;</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+          buffer<span class="token punctuation">[</span>s<span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span>
+          cout<span class="token operator">&lt;&lt;</span>buffer<span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+          <span class="token function">write</span><span class="token punctuation">(</span>fd<span class="token punctuation">,</span>buffer<span class="token punctuation">,</span><span class="token function">strlen</span><span class="token punctuation">(</span>buffer<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+
+
+   <span class="token function">close</span><span class="token punctuation">(</span>fd<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>运行结果：<br>
+<img src="https://img-blog.csdnimg.cn/ec7a98b464914dbf8a93573ed31ce25e.png" alt="在这里插入图片描述"></p>
+<h3><a id="3_376"></a>（3）命名管道的规则</h3>
+<ul>
+<li>如果当前打开操作是为读而打开FIFO时<br>
+O_NONBLOCK disable：阻塞直到有相应进程为写而打开该FIFO<br>
+O_NONBLOCK enable：立刻返回成功</li>
+<li>如果当前打开操作是为写而打开FIFO时<br>
+O_NONBLOCK disable：阻塞直到有相应进程为读而打开该FIFO<br>
+O_NONBLOCK enable：立刻返回失败，错误码为ENXIO</li>
+</ul>
+<h2><a id="4__385"></a>4. 匿名管道和命名管道的区别</h2>
+<ol>
+<li>匿名管道由pipe函数创建并打开。</li>
+<li>命名管道由mkfifo函数创建，打开用open</li>
+<li>FIFO（命名管道）与pipe（匿名管道）之间唯一的区别在它们创建与打开的方式不同，一但这些工作完成之后，它们具有相同的语义。</li>
+</ol>
+<p>在了解了匿名管道和命名管道后，我们应该知道管道文件“｜”是匿名管道。因为在使用例如“cat fife.txt ｜ grep hello”，<strong><mark>俩个进程都有一个共同的父进程bash</mark></strong>，<strong>父进程创建出的匿名管道可以被所有子进程通信，任何一个子进程都可以对该匿名管道进行读或写，各个子进程也就可以通信了！</strong></p>
+<hr>
+<h1><a id="system_V__395"></a>三、system V 版本的通信</h1>
+<h2><a id="1_system_V_IPC_396"></a>1. system V IPC简述</h2>
+<p><strong>管道</strong>的本质是<strong>通过<mark>文件系统实现</mark>的通信</strong>，<strong>而system V IPC则是<mark>操作系统直接提供</mark>的通信方式。</strong></p>
+<p>system V标准的进程间通信分为三种，system V共享内存，system V信号量，system V消息队列。</p>
+<blockquote>
+<p>system V共享内存和system V 消息队列是以传送数据为目的的，而system V信号量是为了保证进程间的同步与互斥而设计的，虽然system V信号量和通信好像没有直接关系，但属于通信范畴。</p>
+</blockquote>
+<h2><a id="2_system_V__403"></a>2. system V 共享内存（概念）</h2>
+<h3><a id="1_405"></a>（1）通信方式</h3>
+<p><strong>共享内存</strong>是进程间通信（IPC）中最简单的方式之一，也是最快的IPC形式。</p>
+<p>管道是通过在内核开辟一块缓冲区，并用文件系统对这块缓冲区进行操作，实现进程间通信，期间要进行多次数据拷贝，效率不够高。</p>
+<p>而共享内存是操作系统直接在物理内存中申请一块内存，<strong><font color="Purple">同一块物理内存通过不同的进程页表映射到不同进程的进程地址空间，俩个或多个进程可以同时直接看到这份资源</font></strong>。当一个进程改变了这块内存中的内容的时候，其他进程就可以察觉到这种更改。</p>
+<h3><a id="2_414"></a>（2）通信原理</h3>
+<p>共享内存通信的原理就是让不同的进程看到同一份资源。OS在物理内存中开辟一块空间，我们知道在Linux下每个进程都有自己的进程控制块（PCB)，虚拟地址空间并且都有一个与之对应的页表。而页表负责将虚拟地址转换为物理地址。通过内存管理单元（MMU）进行管理。<font color="HotPink">俩个不同的虚拟地址通过页表映射到物理空间的同一区域，它们所指向的这块区域即共享内存。<strong>这样两个进程就看到同一块物理内存而这块物理内存我们称为共享内存。</strong></font><br>
+<img src="https://img-blog.csdnimg.cn/12a6011729aa4b03b2ea3ff97a2c45fc.png" alt="在这里插入图片描述"></p>
+<p>关于页表的补充：</p>
+<blockquote>
+<p>进程地址空间里有一个内核区域，它们也会在实际物理内存开辟空间，也会有页表与那块空间形成映射关系，这个页表叫做内核级页表。因为内核只有一个，所以每个进程都相同的。说明进程都共用实际物理内存上的内核空间。</p>
+</blockquote>
+<blockquote>
+<p>除内核空间以外的空间，与实际物理空间之间的页表，称为用户级页表。每个进程可能不同</p>
+</blockquote>
+<h3><a id="3_426"></a>（3）特性（重要）</h3>
+<p><strong><font color="red">1. 共享内存是最快的进程间通信的方案。</font></strong></p>
+<ul>
+<li>不管是管道还是消息队列都必须把用户数据拷贝至内核，然后接收方再从内核中拷进来；比如read和write的本质就是将数据在用户缓冲区和内核缓冲区之间进行拷贝，共要进行两次拷贝。</li>
+<li><strong>而共享内存一旦映射成功，一个进程向共享内存区写入了数据，其他共享这个内存的所有进程就能立刻看到其中的内容，不需要任何系统调用接口。</strong></li>
+<li><font color="Purple"><strong>这块内存映射到共享它的进程的地址空间，这些进程间的数据传递将不再涉及到内核，对这块内存的操作不需要借助文件系统，即进程不再通过执行进入内核的系统调用来传递数据，而是这些进程通过共享内存来传递数据</strong></font>，所以共享内存是进程通信的最快方式。</li>
+</ul>
+<p><strong><font color="red">2. 共享内存没有提供同步与互斥的机制。</font></strong></p>
+<ul>
+<li>这部分的功能需要自己完成。若一个进程正在想共享内存区中写数据，则在它做完这一步的操作前，别的进程不应该去读或者写数据。</li>
+</ul>
+<h3><a id="4_435"></a>（4）管理共享内存的数据结构</h3>
+<p>共享内存是由OS系统来维护的，而系统中存在大量的共享内存（因为有大量进程在通信），所以OS系统就需要将贡献给内存管理起来，所以<strong>在内核中存在数据结构来描述共享内存的相关信息</strong>；<font color="Purple">OS系统通过管理该结构体，就可以知道任意一块共享内存挂接了哪些进程等信息。</font></p>
+<p>查看内核源代码，可以看到系统描述共享内存的数据结构如下：</p>
+<pre><code class="prism language-c"><span class="token comment">/* Obsolete, used only for backwards compatibility and libc5 compiles */</span>
+<span class="token keyword">struct</span> <span class="token class-name">shmid_ds</span> <span class="token punctuation">{</span>
+   <span class="token keyword">struct</span> <span class="token class-name">ipc_perm</span>		shm_perm<span class="token punctuation">;</span>	<span class="token comment">/* operation perms */</span>
+   <span class="token keyword">int</span>			shm_segsz<span class="token punctuation">;</span>	<span class="token comment">/* size of segment (bytes) */</span><span class="token comment">//共享内存空间大小</span>
+   __kernel_time_t		shm_atime<span class="token punctuation">;</span>	<span class="token comment">/* last attach time */</span><span class="token comment">//挂接时间</span>
+   __kernel_time_t		shm_dtime<span class="token punctuation">;</span>	<span class="token comment">/* last detach time */</span><span class="token comment">//取消挂接时间</span>
+   __kernel_time_t		shm_ctime<span class="token punctuation">;</span>	<span class="token comment">/* last change time */</span><span class="token comment">//改变时间</span>
+   __kernel_ipc_pid_t	shm_cpid<span class="token punctuation">;</span>	<span class="token comment">/* pid of creator */</span>
+   __kernel_ipc_pid_t	shm_lpid<span class="token punctuation">;</span>	<span class="token comment">/* pid of last operator */</span>
+   <span class="token keyword">unsigned</span> <span class="token keyword">short</span>		shm_nattch<span class="token punctuation">;</span>	<span class="token comment">/* no. of current attaches */</span><span class="token comment">//进程挂接数</span>
+   <span class="token keyword">unsigned</span> <span class="token keyword">short</span> 		shm_unused<span class="token punctuation">;</span>	<span class="token comment">/* compatibility */</span>
+   <span class="token keyword">void</span> 			<span class="token operator">*</span>shm_unused2<span class="token punctuation">;</span>	<span class="token comment">/* ditto - used by DIPC */</span>
+   <span class="token keyword">void</span>			<span class="token operator">*</span>shm_unused3<span class="token punctuation">;</span>	<span class="token comment">/* unused */</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+</code></pre>
+<p>描述共享内存的数据结构里保存了一个ipc_perm结构体，这个结构体保存了IPC(进程将通信)的关键信息。</p>
+<pre><code class="prism language-c"><span class="token comment">/* Obsolete, used only for backwards compatibility and libc5 compiles */</span>
+<span class="token keyword">struct</span> <span class="token class-name">ipc_perm</span>
+<span class="token punctuation">{</span>
+	__kernel_key_t	key<span class="token punctuation">;</span> <span class="token comment">//共享内存的唯一标识符</span>
+	__kernel_uid_t	uid<span class="token punctuation">;</span>
+	__kernel_gid_t	gid<span class="token punctuation">;</span>
+	__kernel_uid_t	cuid<span class="token punctuation">;</span>
+	__kernel_gid_t	cgid<span class="token punctuation">;</span>
+	__kernel_mode_t	mode<span class="token punctuation">;</span> <span class="token comment">//权限</span>
+	<span class="token keyword">unsigned</span> <span class="token keyword">short</span>	seq<span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+</code></pre>
+<p>其中的key是共享内存的标识，用来保证每个共享内存的唯一性（内核级）。</p>
+<h2><a id="3_system_V__474"></a>3. system V 共享内存（操作）</h2>
+<p>首先一块共享内存需要被操作系统创建，刚创建好的共享内存和进程是没有关系的，<strong><mark>由内核创建，生命周期是随内核的</mark></strong>，我们 <font color="red"><strong>创建好的共享内存</strong></font> ，要让进程可以操作共享内存，就得先<font color="red"><strong>把共享内存和进程关联起来</strong></font> ，获得共享内存的地址信息，直接把信息写入地址，对应关联的另一个进程就会马上看到写入的信息，完成通信。</p>
+<p>在使用完后，也需要<font color="red"> <strong>取消进程和内存的关联</strong>，<strong>最后再主动删除共享内存。</strong></font></p>
+<h3><a id="1_480"></a>（1）申请共享内存</h3>
+<h4><a id="A_IPCftok_481"></a>A. 获取IPC键值(ftok接口)</h4>
+<p>为了确保两进程使用的是同一块共享内存，我们会调用一个接口来<strong>获取一个唯一值key，作为共享内存的标识</strong>。</p>
+<p>这个key值在创建共享内存时被传入，填入共享内存的描述结构体中，<mark>作为共享内存的唯一标识</mark>。</p>
+<p><img src="https://img-blog.csdnimg.cn/f82f8e99094440bd84c18db56b15d39f.png" alt="在这里插入图片描述"></p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/types.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/ipc.h&gt;</span></span>
+<span class="token class-name">key_t</span> <span class="token function">ftok</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>pathname<span class="token punctuation">,</span> <span class="token keyword">int</span> proj_id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p><font color="red">参数说明：</font></p>
+<blockquote>
+<ul>
+<li>athname (路径名)</li>
+<li>proj_id (整数)</li>
+</ul>
+</blockquote>
+<p>返回值就是生成的key值，IPC建值。</p>
+<p><img src="https://img-blog.csdnimg.cn/e8258d4d50f24b69b5bc35e2e431c7f1.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/32d996a40fc342a395ca0eb34de7db80.png" alt="在这里插入图片描述"></p>
+<p><strong><font color="red">有关该函数的三个常见问题：</font></strong></p>
+<blockquote>
+<p>1.pathname是目录还是文件的具体路径，是否可以随便设置？<br>
+2.pathname指定的目录或文件的权限是否有要求？<br>
+3.proj_id是否可以随便设定，有什么限制条件？</p>
+</blockquote>
+<p><font color="red">解答：</font></p>
+<blockquote>
+<p>1.ftok根据路径名，提取文件信息，再根据这些文件信息及project ID合成key，该路径可以随便设置。<br>
+2.该路径是必须存在的，ftok只是根据文件inode在系统内的唯一性来取一个数值，和文件的权限无关。<br>
+3.proj_id是可以根据自己的约定，随意设置。这个数字,有的称之为project ID; 在UNIX系统上,它的取值是1到255;</p>
+</blockquote>
+<h4><a id="B_shmget_519"></a>B. 共享内存创建接口(shmget接口)</h4>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/shm.h&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">shmget</span><span class="token punctuation">(</span><span class="token class-name">key_t</span> key<span class="token punctuation">,</span> <span class="token class-name">size_t</span> size<span class="token punctuation">,</span> <span class="token keyword">int</span> shmflg<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p><strong><mark><font color="red">参数说明</font></mark></strong>：</p>
+<blockquote>
+<ul>
+<li>第一个<mark>参数key</mark>用来在系统中唯一标识一块共享内存和进程PID类似，都是会设置到管理共享内存的数据结构中。</li>
+<li>第二个<mark>参数size</mark>表示共享内存的大小，一般建议是4KB的整数倍。Linux 会以页为单位管理内存，无论是<strong>将磁盘中的数据加载到内存中，还是将内存中的数据写回磁盘，操作系统都会以页面为单位进行操作</strong>，哪怕我们只向磁盘中写入一个字节的数据，我们也需要将整个页面中的全部数据刷入磁盘中。绝大多数处理器上的内存页的默认大小都是 4KB或者是4KB的整数倍所以建议是4KB的整数倍。若设置的不是4kb的整数倍，实际的共享内存大小会是打于设置值且为最接近设置值的一个4KB的整数值。</li>
+<li>第三个<mark>参数shmflg</mark>为标记位，这个和我们之前学习基础IO时的标志位非常的类似它就是一个宏并且在32个比特位中只有一位为1，并且各不相同。</li>
+</ul>
+</blockquote>
+<p>关于第三个参数的权限，我们一般使用两个，<strong><font color="red">IPC_CREAT和IPC_EXCL</font></strong>，IPC_CREAT可以单独使用，也可以或上IPC_EXCL来使用</p>
+
+<table>
+<thead>
+<tr>
+<th>组合方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IPC_CREAT</td>
+<td>如果内核中不存在键值与key相等的共享内存，则新建一个共享内存并返回标识该共享内存的id（用户层id）；如果存在这样的共享内存，则直接返回该共享内存的id</td>
+</tr>
+<tr>
+<td>IPC_CREAT｜IPC_EXCL</td>
+<td>如果内核中不存在键值与key相等的共享内存，则新建一个共享内存并返回该标识该共享内存的id；如果存在这样的共享内存，则出错返回-1</td>
+</tr>
+</tbody>
+</table><blockquote>
+<ol>
+<li>如果只单独使用使用IPC_CREAT，一定会获得一个共享内存的句柄，但无法确认该共享内存是否是新建的共享内存</li>
+<li>使用组合IPC_CREAT | IPC_EXCL，只有shmget函数调用成功时才会获得共享内存的句柄，并且该共享内存一定是新建的共享内存。</li>
+</ol>
+</blockquote>
+<p><mark><strong><font color="red">返回值</font></strong></mark>：</p>
+<blockquote>
+<ul>
+<li>如果调用成功会返回一个标识符用来唯一标识一个有效的共享内存（这个标识符是在用户层）。</li>
+<li>失败返回-1。</li>
+</ul>
+</blockquote>
+<p>我们来查看用户层id和系统层id：<br>
+<img src="https://img-blog.csdnimg.cn/185c5aa7a9e3451f82b4b5d55ae537bc.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/6802ed24f81743c6875808663d08d918.png" alt="在这里插入图片描述"><br>
+<font color="red">我们发现在<strong>用户层</strong>和<strong>系统层</strong>用来标识共享内存的id是不一样的。</font></p>
+<p><strong>在linux我们可以使用ipcs指令查看有关进程间通信的信息，也可以知道key和shmid是不一样的</strong>；如果我们单独使用ipcs那么会列出消息队列，共享内存，信号量的相关信息。如果我们只想查看其他的一个信号我们可以使用选项：</p>
+<blockquote>
+<p>ipcs - q//列出消息队列的相关信息<br>
+ipcs - m//列出共享内存的相关信息<br>
+ipcs - s//列出信号量的相关信息</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/388e1050fc074b4699b0b4d7e6cba4d9.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/a24654dc943740e8af8061468c216438.png" alt="在这里插入图片描述"><br>
+通过观察，我们发现进程已经退出了，但是进程创建的共享内存仍然存在，于是得出一个结论：<strong><font color="red">IPC(进程将通信)资源生命周期不随进程，而是随内核的，不释放会一直占用，除非重启</font></strong>。<strong>所以，shmget创建的共享内存要释放掉，不然会内存泄漏</strong>。</p>
+<p><font color="DeepPink"> 我们也可以看到每一个共享内存都分别有一个系统层的标识符key和一个用户层的标识符shmid来标识共享内存。</font></p>
+<h3><a id="2shmat_564"></a>（2）共享内存挂接到地址空间（shmat接口）</h3>
+<p><font color="Purple">挂接实际上就是将物理地址和进程的虚拟地址关联起来，将对应共享内存的地址映射到虚拟地址中的起始地址，也就是填入页表的过程。</font></p>
+<p>函数原型如下：</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/types.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/shm.h&gt;</span></span>
+ <span class="token keyword">void</span> <span class="token operator">*</span><span class="token function">shmat</span><span class="token punctuation">(</span><span class="token keyword">int</span> shmid<span class="token punctuation">,</span> <span class="token keyword">const</span> <span class="token keyword">void</span> <span class="token operator">*</span>shmaddr<span class="token punctuation">,</span> <span class="token keyword">int</span> shmflg<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>参数说明：</p>
+<blockquote>
+<ul>
+<li><strong>第一个参数shmid</strong>：就是成功创建共享内存返回的标识符，这个标识符是在用户层标识共享内存的。</li>
+<li><strong>第二个参数shmaddr</strong>：指定共享内存映射到进程地址空间的某一地址。通常设置为NULL，让系统自己分配合适位置。</li>
+<li><strong>第三个参数shmflg</strong>：它的两个可能取值是SHM_RND和SHM_RDONLY，设置与共享内存关联时的权限，一般我们取0。</li>
+</ul>
+</blockquote>
+<p>其中shmat的第三个参数shmflg常用选项主要有以下三个：</p>
+
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SHM_RDONLY</td>
+<td>关联之后的共享内存只能进行读取操作</td>
+</tr>
+<tr>
+<td>SHM_RND</td>
+<td>若shmaddr不为空，则关联地址自动向下调整为SHMLBA的整数倍。</td>
+</tr>
+<tr>
+<td>0</td>
+<td>默认为读写权限</td>
+</tr>
+</tbody>
+</table><p>返回值：</p>
+<blockquote>
+<ul>
+<li>它的返回值是一个void* 类型的地址，<strong>调用成功时就返回把共享内存映射到进程地址空间上的地址的起始地址</strong>，类似于malloc函数申请内存成功的返回值。</li>
+<li><strong>调用失败时返回(void)(-1)。</strong></li>
+</ul>
+</blockquote>
+<p>我们还可以使用ipcs -m来查看共享内存的信息，其中<strong>nattch就表示了当前有几个进程与该共享内存关联。</strong></p>
+<h3><a id="3shmdt_593"></a>（3）去关联共享内存（shmdt接口）</h3>
+<p>函数原型如下：</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/types.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/shm.h&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">shmdt</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">void</span> <span class="token operator">*</span>shmaddr<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>参数说明：</p>
+<blockquote>
+<ul>
+<li>要去关联共享内存的起始地址即调用shmat返回得到的地址。</li>
+</ul>
+</blockquote>
+<p>返回值：</p>
+<blockquote>
+<ul>
+<li>调用成功返回0</li>
+<li>失败返回-1.</li>
+</ul>
+</blockquote>
+<h3><a id="4_609"></a>（4）释放共享内存</h3>
+<p>通过上面的实验我们发现当我们的进程结束之后共享内存依然存在，并没有被OS释放。通过之前对管道的学习我们知道管道的生命周期是随进程的，<strong>而共享内存的生命周期是随内核的。也就是说进程退出了但是它创建的共享内存不会随着进程的退出而被释放掉</strong>，如果我们不手动的删除共享内存那么它会一直存在。删除共享内存有两种方式一种是通过命令一种是通过函数调用进行释放：</p>
+<h4><a id="A__612"></a>A. 通过系统命令释放共享内存</h4>
+<p>我们可以使用ipcrm -m shmid(shmid是用户层标识共享内存的id)：<br>
+<img src="https://img-blog.csdnimg.cn/78326f52c00748098a0ccf22d6667bdb.png" alt="在这里插入图片描述"></p>
+<h4><a id="B_shmctl_617"></a>B. 通过系统调用释放共享内存(shmctl接口)</h4>
+<p>函数原型如下：</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/shm.h&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">shmctl</span><span class="token punctuation">(</span><span class="token keyword">int</span> shmid<span class="token punctuation">,</span> <span class="token keyword">int</span> cmd<span class="token punctuation">,</span> <span class="token keyword">struct</span> <span class="token class-name">shmid_ds</span> <span class="token operator">*</span>buf<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>参数说明：</p>
+<blockquote>
+<ul>
+<li><strong>第一个参数</strong>：shmid表示在用户层标识共享内存的id</li>
+<li><strong>第二个参数</strong>：标识具体控制动作</li>
+<li><strong>第三个参数</strong>：buf用于获取或者设置所控制共享内存的数据结构，一般设置为NULL</li>
+</ul>
+</blockquote>
+<p>第二个参数，一般有三个，对应不同的操作，要删除就传入IPC_RMID。</p>
+
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>IPC_RMID</strong></td>
+<td><strong>删除共享内存</strong></td>
+</tr>
+<tr>
+<td>IPC_STAT</td>
+<td>获取共享内存的当前关联值，此时参数buf作为输出型参数</td>
+</tr>
+<tr>
+<td>IPC_SET</td>
+<td>在进程有足够权限的前提下，将共享内存的当前关联值设置为buf所指的数据结构中的值</td>
+</tr>
+</tbody>
+</table><p>返回值：</p>
+<blockquote>
+<ul>
+<li>shmctl调用成功，返回0。</li>
+<li>shmctl调用失败，返回-1</li>
+</ul>
+</blockquote>
+<p><strong>注意</strong>：对于一个共享内存，实现采用的是引用计数的原理，当进程脱离共享存储区后，计数器减一，挂架成功时，计数器加一，只有当计数器变为零时，才能被删除。当进程终止时，它所附加的共享存储区都会自动脱离。</p>
+<p>例子：</p>
+<pre><code class="prism language-cpp"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">"comm.h"</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;cstdio&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+    <span class="token comment">//获取一个关键字用来唯一标识系统中的共享内存</span>
+    key_t key<span class="token operator">=</span><span class="token function">ftok</span><span class="token punctuation">(</span>PATH_NAME<span class="token punctuation">,</span>ID<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token comment">//这个key值会设置进管理共享内存的数据结构中</span>
+    <span class="token keyword">if</span><span class="token punctuation">(</span>key<span class="token operator">&lt;</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+        cerr<span class="token operator">&lt;&lt;</span><span class="token string">"ftok fail"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+        <span class="token keyword">return</span> <span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    <span class="token keyword">int</span> shmid<span class="token operator">=</span><span class="token function">shmget</span><span class="token punctuation">(</span>key<span class="token punctuation">,</span>SIZE<span class="token punctuation">,</span>IPC_CREAT<span class="token operator">|</span>IPC_EXCL<span class="token operator">|</span><span class="token number">0666</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token comment">//IPC_EXCL设置之后保证创建出来的共享内存一定是全新的</span>
+    <span class="token keyword">if</span><span class="token punctuation">(</span>shmid<span class="token operator">&lt;</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+        cerr<span class="token operator">&lt;&lt;</span><span class="token string">"shmget fail"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+        <span class="token keyword">return</span> <span class="token number">2</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%x\n"</span><span class="token punctuation">,</span>key<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%d\n"</span><span class="token punctuation">,</span>shmid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">shmctl</span><span class="token punctuation">(</span>shmid<span class="token punctuation">,</span>IPC_RMID<span class="token punctuation">,</span><span class="token constant">NULL</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    cout<span class="token operator">&lt;&lt;</span><span class="token string">"共享内存删除完成"</span><span class="token operator">&lt;&lt;</span>endl<span class="token punctuation">;</span>
+    <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p><img src="https://img-blog.csdnimg.cn/be4446da11cb4d2d9c7267832fbfdd42.png" alt="在这里插入图片描述"></p>
+<h2><a id="4__674"></a>4. 使用共享内存实现通信</h2>
+<p>我们再知道共享内存的创建，关联和去关联以及释放之后现在我们可以尝试让两个进程之间进行通信。其中服务端负责创建共享内存创建好之后进行关联然后进入死循环。</p>
+<p><img src="https://img-blog.csdnimg.cn/50a4c88c059146c187e276bb92499bf6.png" alt="在这里插入图片描述"></p>
+<p>运行结果如下：</p>
+<p><img src="https://img-blog.csdnimg.cn/909249359e0047cd82fe561481b318ea.png" alt="在这里插入图片描述"></p>
+<hr>
+<h1><a id="_686"></a>四、进程信号</h1>
+<h2><a id="1__688"></a>1. 信号处理的周期</h2>
+<ol>
+<li><strong><mark>信号产生前</mark></strong>：进程可以接收信号，并且可以识别并处理信号，进而产生相应的动作。而进程识别并处理信号的能力时与生俱来的，是早于信号的产生。即<font color="Blue">接收信号之间就需要设置好处理信号的方式</font>。而处理信号又有三种方式，分别为<font color="red">（1）<strong>OS系统默认的处理动作，（2）我们自定义的处理动作，（3）将接受到的信号忽略</strong>。</font></li>
+<li><strong><mark>信号产生中</mark></strong>：信号产生的方式有非常多，比如键盘，进程异常，系统调用等等。而信号的本质是数据，他要向task_struct结构体中写入的，而只有OS系统才可以在内核中直接操作，所以，<font color="red">即使产生信号方式很多，但是最终发送都是由OS系统发送的。</font></li>
+<li><strong><mark>信号产生后</mark></strong>：信号的产生是异步的，任何时候都有可能产生信号；当进程收到某种信号时，并不一定是立刻处理的，而可能是在合适的时候。所以<font color="red"><strong>进程需要将收到的信号保存在task_struct结构体中，以供在合适的时候处理</strong>。（注意：信号本质）</font></li>
+</ol>
+<h2><a id="2__694"></a>2. 信号的分类</h2>
+<p>使用kill -l查看所有信号：<br>
+<img src="https://img-blog.csdnimg.cn/72cfbf11395c4f5589f4065584df65e5.png" alt="在这里插入图片描述"></p>
+<p>信号一共有62种，<strong>其中1 ~ 31号信号是普通信号，34 ~ 64号信号是实时信号</strong>，普通信号和实时信号各自都有31个，每个信号都有一个编号和一个宏定义名称：</p>
+<p>在usr/include/bits/signum.h中查看：<br>
+<img src="https://img-blog.csdnimg.cn/6041bcc0ac2148d59992bf4982d573ce.png" alt="在这里插入图片描述"></p>
+<h2><a id="3__704"></a>3. 信号产生前----设置信号处理方式</h2>
+<p>可以使用该函数来设置某一信号的对应动作：</p>
+<pre><code class="prism language-cpp"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;signal.h&gt;</span></span>
+<span class="token keyword">typedef</span> <span class="token keyword">void</span> <span class="token punctuation">(</span><span class="token operator">*</span>sighandler_t<span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token keyword">int</span><span class="token punctuation">)</span>
+sighandler_t <span class="token function">signal</span><span class="token punctuation">(</span><span class="token keyword">int</span> signum<span class="token punctuation">,</span> sighandler_t handler<span class="token punctuation">)</span>
+</code></pre>
+<p><strong><font color="red">参数说明</font></strong>：</p>
+<blockquote>
+<ul>
+<li><strong><mark>参数signum</mark></strong>：我们要进行处理的信号。它可以取除了SIGKILL和SIGSTOP外的任何一种信号。</li>
+<li><strong><mark>参数handler</mark></strong>：描述了与信号关联的动作，它可以取以下三种值（是系统默认还是忽略还是捕获）。</li>
+</ul>
+</blockquote>
+
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SIG_IGN</td>
+<td>表示忽略该信号</td>
+</tr>
+<tr>
+<td>SIG_DFL</td>
+<td>表示恢复对信号的系统默认处理。不写此处理函数默认也是执行系统默认操作</td>
+</tr>
+<tr>
+<td>sighandler_t类型的函数指针</td>
+<td>使用自定义的函数处理信号</td>
+</tr>
+</tbody>
+</table><p>如果你想了解某个信号的产生条件和默认处理动作，可以通过指令man signal_id signal。</p>
+<p><font color="red"><strong>返回值</strong>：</font></p>
+<blockquote>
+<ul>
+<li>返回先前的信号处理函数指针</li>
+<li>出错则返回SIG_ERR(-1)。</li>
+</ul>
+</blockquote>
+<p><strong>注意！！！</strong><br>
+<img src="https://img-blog.csdnimg.cn/517bae3b8b804301a34cd7e6e56cc1c8.png" alt="在这里插入图片描述"></p>
+<h2><a id="4__732"></a>4. 信号产生时----信号的产生方式</h2>
+<h3><a id="1_734"></a>（1）通过终端按键产生信号</h3>
+<h4><a id="A_ctrlcctr_736"></a>A. ctrl+c和ctr+\的作用</h4>
+<p>面对死循环程序我们可以<font color="Blue"><strong>使用ctr+c 或者ctr+\将其终止</strong></font>，实际了是因为当我们按ctr+c时键盘会产生一个硬件中断被OS捕获将其解释为信号（2号信号和3号信号）<strong>然后OS就给目标前台进程发送信号，而对应前台进程收到信号时，就会退出。</strong></p>
+<p><img src="https://img-blog.csdnimg.cn/59463aedb4904e1d81f48d76008325e6.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/102e7d19441943a9942763991ea6794a.png" alt="在这里插入图片描述"></p>
+<p>Ctrl+C代表的是2号信号，且<strong>这个2号信号不再做终止进程的动作，而是会执行我们给出的handler方法</strong>，因为此时我们已经**将2号信号的处理方式由默认改为了自定义了。**同时也证明了按Ctrl+C时进程确实是收到了2号信号。</p>
+<p>注意：</p>
+<blockquote>
+<ol>
+<li>ctr+c 产生的信号只能终止前台进程。我们运行命令后面加一个&amp;就可以将其放到后台运行</li>
+<li>shell可以运行多个后台进程和一个前台进程但是只有前台进程才能被像ctr+c这种控制键产生的信号终止</li>
+<li>9号信号不可被捕捉,9号信号是管理员信号如果所有信号都可以被捕捉那么有一些进程就无敌了，OS也无法管理他。</li>
+</ol>
+</blockquote>
+<p><strong><font color="red">按Ctrl+C终止进程和按Ctrl+\终止进程，有什么区别？</font></strong></p>
+<p><img src="https://img-blog.csdnimg.cn/7db019ed1bfc4f2baabac3e9b2bed1f5.png" alt="在这里插入图片描述"></p>
+<p>按Ctrl+C实际上是向进程发送2号信号SIGINT，而按Ctrl+\实际上是向进程发送3号信号SIGQUIT。查看这两个信号的默认处理动作，可以看到这两个信号的Action是不一样的，2号信号是Term，而3号信号是Core。</p>
+<p>这里的Term和Core是什么意思呢？</p>
+<blockquote>
+<p><img src="https://img-blog.csdnimg.cn/0e2f16af495e4fbfab77337851f541c6.png" alt="在这里插入图片描述"><br>
+<font color="red">Term和Core都代表着终止进程，但是Core在终止进程的时候会进行一个动作，那就是核心转储。</font></p>
+</blockquote>
+<h4><a id="B_coredump_762"></a>B. coredump核心转储</h4>
+<p><font color="purple">coredump叫做核心转储，也就是当Linux应用发生崩溃时，操作系统会自动生成coredump文件，供开发者调试使用。</font></p>
+<p>当应用发生一些错误导致crash时，内核会为应用发送信号（signal），应用可以去做一些crash信息收集（比如寄存器，堆栈等），<strong>同时操作系统也会生成核心转储文件，也就是常说的core文件</strong>。</p>
+<p>并不是所有信号都会生成coredump，通过man 7 signal查看，主要包括（SIGSEGV, SIGABRT, SIGFPE, SIGILL, SIGBUS, SIGTRAP）如下：</p>
+<p><img src="https://img-blog.csdnimg.cn/6c0d775022e44d95ab1f696afde8f38a.png" alt="在这里插入图片描述"></p>
+<p>核心转储是默认被关掉的，我们可以通过使用<font color="red">ulimit -a</font>命令查看当前资源限制的设定。<br>
+<img src="https://img-blog.csdnimg.cn/b4f748b2099d403c96a30de7a63a1bdc.png" alt="在这里插入图片描述"><br>
+其中，第一行显示core文件的大小为0，即表示核心转储是被关闭的。</p>
+<p>我们可以通过<font color="red">ulimit -c size</font>命令来设置core文件的大小。<br>
+<img src="https://img-blog.csdnimg.cn/ce1e221651e449f6812107aee4d6d249.png" alt="在这里插入图片描述"></p>
+<p><font color="red">core文件的大小设置完毕后，就相当于将核心转储功能打开了</font>。此时如果我们再使用Ctrl+\对进程进行终止，就会发现终止进程后会显示:</p>
+<p><img src="https://img-blog.csdnimg.cn/ec69a420c7bb45a6be565c44533319ba.png" alt="在这里插入图片描述"></p>
+<p>并且会<font color="red">在当前路径下生成一个core文件，该文件以一串数字为后缀</font>，而这一串数字实际上就是发生这一次核心转储的进程的PID。</p>
+<p><img src="https://img-blog.csdnimg.cn/a4fe8b77948e446b8c6eed84fc311090.png" alt="在这里插入图片描述"></p>
+<p>此时通过gdb调试器打开这个程序，然后通过指令core-file core文件的错误信息，就可以发现这个进程是被收到3号信号如何退出的：</p>
+<p><img src="https://img-blog.csdnimg.cn/b64db55c05f643bdb2722f6c2876195b.png" alt="在这里插入图片描述"></p>
+<blockquote>
+<p><font color="red">为什么说核心转储是用来进行调试错误的呢？</font></p>
+<ol>
+<li>当我们的代码出错了，我们最关心的是我们的代码是什么原因出错的。如果我们的代码运行结束了，那么我们可以通过退出码来判断代码出错的原因。</li>
+<li>当一个进程异常退出时，进程的退出信号会被设置，表明当前进程的退出原因。</li>
+<li>进程异常退出时，我们只可以通过status得到进程的退出原因，我们必须通过调试来进行逐步查找程序在哪里崩溃，为了迅速知道程序在哪里出错了，我们会用到核心转储。在使用gdb将core文件加载后，我们在调试时可以迅速知道代码在哪一行出错了，哪一句代码，比如除0错误等等。</li>
+<li>核心转储指的是操作系统在进程收到某些信号而终止运行时，将该进程地址空间的内容以及有关进程状态的其他信息转而存储到一个磁盘文件当中，这个磁盘文件也叫做核心转储文件，一般命名为core.pid。</li>
+</ol>
+</blockquote>
+<blockquote>
+<p><font color="red">核心转储的目的就是为了在调试时，方便问题的定位。</font></p>
+</blockquote>
+<h4><a id="C_coredump_798"></a>C. coredump标志位</h4>
+<p>在进程等待时我们学习过一个函数：</p>
+<pre><code class="prism language-c"><span class="token class-name">pid_t</span> <span class="token function">waitpid</span><span class="token punctuation">(</span><span class="token class-name">pid_t</span> pid<span class="token punctuation">,</span> <span class="token keyword">int</span> <span class="token operator">*</span>status<span class="token punctuation">,</span> <span class="token keyword">int</span> options<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>waitpid函数的第二个参数status是一个输出型参数，用于获取子进程的退出状态。status是一个整型变量，但status不能简单的当作整型来看待，status的不同比特位所代表的信息不同，具体细节如下（只关注status低16位比特位）</p>
+<p><img src="https://img-blog.csdnimg.cn/2c91c77e8b854b3ab2ab075ce7513927.png" alt="在这里插入图片描述"></p>
+<blockquote>
+<p><font color="red">core dump标志实际上就是用于表示程序崩溃的时候是否进行了核心转储。</font></p>
+</blockquote>
+<h3><a id="2_813"></a>（2）通过系统调用产生信号</h3>
+<p>当我们要使用kill命令向一个进程发送信号时，我们可以以kill -信号名 进程ID或者kill -信号编号 进程ID的形式进行发送.</p>
+<h4><a id="A_kill_817"></a>A. kill函数</h4>
+<p>实际上kill命令是通过调用kill函数实现的，kill函数可以给指定的进程发送指定的信号，kill函数的函数原型如下：</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;signal.h&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">kill</span><span class="token punctuation">(</span><span class="token class-name">pid_t</span> pid<span class="token punctuation">,</span> <span class="token keyword">int</span> sig<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<blockquote>
+<p>kill函数用于向进程ID为pid的进程发送sig号信号，如果信号发送成功，则返回0，否则返回-1。</p>
+</blockquote>
+<p>示例演示：<br>
+<img src="https://img-blog.csdnimg.cn/61c247a4e3914e908a745748bc7ca3f1.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/c37a142bf3a649f9a27810d42a06dc12.png" alt="在这里插入图片描述"></p>
+<h4><a id="B_raise_831"></a>B. raise函数</h4>
+<p>raise函数可以给当前进程发送指定信号，即自己给自己发送信号，raise函数的函数原型如下：</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;signal.h&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">raise</span><span class="token punctuation">(</span><span class="token keyword">int</span> sig<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p><font color="red">raise函数相当于kill(getpid(), sig)</font></p>
+<blockquote>
+<p>raise函数用于给当前进程发送sig号信号，如果信号发送成功，则返回0，否则返回一个非零值。</p>
+</blockquote>
+<h4><a id="C_abort_841"></a>C. abort函数</h4>
+<p>aise函数可以给当前进程发送SIGABRT信号（6号信号），使得当前进程异常终止，abort函数的函数原型如下：</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+<span class="token keyword">void</span> <span class="token function">abort</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>abort函数是一个无参数无返回值的函数。</p>
+<p><img src="https://img-blog.csdnimg.cn/503702b14be14ca7a76ecef7de39f488.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/d89a06fc0912474e8b5a9c1d8f1b20d4.png" alt="在这里插入图片描述"></p>
+<p>即使我们对6号信号的处理动作进行了修改，但是这个信号还是把该进程终止了，这就说明了<font color="red">abort的函数永远是成功的。</font></p>
+<blockquote>
+<p>注意：abort函数的作用是异常终止进程，exit函数的作用是正常终止进程，而abort本质是通过向当前进程发送SIGABRT信号而终止进程的。使用exit函数终止进程可能会失败，但使用abort函数终止进程总是成功的。</p>
+</blockquote>
+<h3><a id="3_861"></a>（3）软件条件产生信号</h3>
+<h4><a id="A_SIGPIPE_863"></a>A. SIGPIPE信号</h4>
+<p>SIGPIPE信号实际上就是一种由软件条件产生的信号。</p>
+<p><font color="red">当进程在使用管道进行通信时，若读端进程将读端关闭，而写端进程还在一直向管道写入数据，那么此时写端中的write操作会产生SIGPIPE信号，进而导致write进程退出。</font></p>
+<p>例如，下面代码当中，创建匿名管道进行父子进程之间的通信，其中父进程是读端进程，子进程是写端进程，但是一开始通信父进程就将读端关闭了，那么此时子进程在向管道写入数据时就会收到SIGPIPE信号，进而被终止。</p>
+<p><img src="https://img-blog.csdnimg.cn/6b16be1793dc4700bd8e09338f60f475.png" alt="在这里插入图片描述"></p>
+<p>运行代码后，即可发现<strong>子进程在退出时收到的是13号信号</strong>，即SIGPIPE信号。</p>
+<p><img src="https://img-blog.csdnimg.cn/d2fcd054005a46058867590be10ed401.png" alt="在这里插入图片描述"></p>
+<h4><a id="B_SIGALRM_877"></a>B. SIGALRM信号</h4>
+<p>调用alarm函数可以设定一个闹钟,也就是告诉内<strong>核在seconds秒之后给当前进程发SIGALRM信号</strong>, 该信号的默认处理动作是终止当前进程。</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token keyword">unsigned</span> <span class="token keyword">int</span> <span class="token function">alarm</span><span class="token punctuation">(</span><span class="token keyword">unsigned</span> <span class="token keyword">int</span> seconds<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<blockquote>
+<p>alarm函数的返回值：</p>
+<ol>
+<li>若调用alarm函数前，进程已经设置了闹钟，则返回上一个闹钟时间的剩余时间，并且本次闹钟的设置会覆盖上一次闹钟的设置。</li>
+<li>如果调用alarm函数前，进程没有设置闹钟，则返回值为0。</li>
+</ol>
+</blockquote>
+<h3><a id="4_890"></a>（4）硬件异常产生信号</h3>
+<p><font color="Hotpink">硬件异常被硬件以某种方式被硬件检测到并通知内核，然后内核向当前进程发送适当的信号。</font></p>
+<p><font color="red">这里介绍两个硬件异常：<strong>CPU产生异常</strong> 和 <strong>MMU产生异常</strong></font></p>
+<h4><a id="A_CPU_896"></a>A. CPU产生异常</h4>
+<p>CPU当中有一堆的寄存器，当我们需要对两个数进行算术运算时，我们是先将这两个操作数分别放到两个寄存器当中，然后进行算术运算并把结果写回寄存器当中。</p>
+<p><font color="purple">此外，CPU当中还有一组寄存器叫做状态寄存器，它可以用来标记当前指令执行结果的各种状态信息，如有无进位、有无溢出等等。</font></p>
+<p>在任务执行过程中，若程序发生除0错误，CPU同时也自动记录了当前指令的状态信息，<font color="blue">将对应的异常错误标志位置位 </font>；<font color="red">而OS系统就会马上识别到这个标志位，知道哪个进程导致了该异常错误</font> ，然后内<strong>核将该异常错误解释为信号，<font color="purple">最后OS系统发送SIGFPE信号给目标任务。</font></strong></p>
+<h4><a id="B_MMU_904"></a>B. MMU产生异常</h4>
+<p>MMU就是是内存管理单元。</p>
+<blockquote>
+<p>MMU 主要完成的功能如下：<br>
+①完成虚拟空间到物理空间的映射，即地址映射。<br>
+②内存保护，设置存储器的访问权限，设置虚拟存储空间的缓冲特性。</p>
+</blockquote>
+<p><font color="red">内存管理单元会对实际的物理内存进行分割和保护，使得每个软件任务只能访问其分配到的内存空间。</font><font color="purple">如果某个任务试图访问其他任务的内存空间，mmu想通过页表映射来将虚拟转换为物理地址，此时发现页表中不存在该虚拟地址，内存管理单元将自动产生异常。</font>然后OS将异常解释为SIGSEGV信号，然后发送给目标任务，以保护其他任务的程序和数据不受破坏。</p>
+<h2><a id="5__915"></a>5. 信号产生后----信号的保存方式</h2>
+<h3><a id="1_917"></a>（1）信号相关概念</h3>
+<p>在了解信号的保存方式之前，我们先了解一下信号的专业词汇</p>
+<blockquote>
+<ul>
+<li>实际执行信号的处理动作称为信号<font color="red">递达</font>(Delivery)</li>
+<li>信号从产生到递达之间的状态,称为信号<font color="red">未决</font>(Pending)。</li>
+<li>进程可以选择<font color="Blue">阻塞</font> (Block )某个信号。</li>
+</ul>
+</blockquote>
+<p>注意：</p>
+<ol>
+<li>信号的递达有三种方式，分别为<font color="red">(1)默认，(2)忽略，(3)自定义捕捉。</font></li>
+<li>未决的本质就是这个<font color="red">信号被暂存在task_struct的信号位图中！</font></li>
+<li>阻塞的本质<font color="red">进程暂时屏蔽指定信号！</font><font color="purple">被阻塞的信号将保持在未决状态</font>，直到进程解除对此信号的阻塞，才执行递达的动作。</li>
+<li>阻塞和忽略是不同的，只要信号被阻塞就不会递达，而忽略是在递达之后可选的一种处理动作。</li>
+</ol>
+<h3><a id="2_932"></a>（2）信号在内核中的表示</h3>
+<p><font color="red">信号是通知进程发生了异步事件，进程收到信号后，并不是立即处理的，而是先<font color="purple">保存起来(未决)，</font>并且判断这个信号<font color="purple">是不是被阻塞(屏蔽)，</font>等到进程从内核态切换为用户态的时候，才会<font color="purple">处理信号(递达)。</font></font></p>
+<p><strong>那么信号在被递达之前，是怎么被保存的呢？信号的屏蔽又是怎么实现的？CPU由内核切换为用户态是在什么时候发生呢？</strong></p>
+<p>信号产生后，进程会收到信号，在进程PCB中，<font color="red">每一个信号都有俩个标志位来分布表示阻塞(block)和未决(pending)，还有一个函数指针表示处理动作。</font></p>
+<p>有三个表分别用来记录所有普通信号的相关信息，其中pending表和block表是用位图来实现的，而handler表实际上是一个函数指针数组。</p>
+
+<table>
+<thead>
+<tr>
+<th>表名称</th>
+<th>值/功能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pending位图</td>
+<td>0表示没有收到该信号，1表示收到该信号</td>
+</tr>
+<tr>
+<td>block位图/信号屏蔽字</td>
+<td>0表示该信号没有被阻塞，1表示该信号被阻塞</td>
+</tr>
+<tr>
+<td>handler位图</td>
+<td>SIG_DFL表示递达该信号的时候执行默认的处理动作； SIG_IGN表示递达该信号时忽略该信号； 其它值就表示该信号递达达时候执行自定义函数指针指向的动作</td>
+</tr>
+</tbody>
+</table><p>handler本质是一个函数指针数组，SIG_DFL和SIG_IGN是什么呢？我们在/usr/include/bits/signum.h中查看定义：<br>
+<img src="https://img-blog.csdnimg.cn/85d28d4f0b324b26b798fa4d79374825.png" alt="在这里插入图片描述"><br>
+它们实际上就是0和1强制转换为函数地址</p>
+<p><strong>信号在内核中的示意图</strong>：<br>
+<img src="https://img-blog.csdnimg.cn/09fbebe982fe4840abdfa16271623c42.png" alt="在这里插入图片描述"></p>
+<p><strong>分析图中的几个信号：</strong></p>
+<ol>
+<li>上图的1号信号，pending位图数据为<font color="red">0</font>，就是当前进程没有收到1号信号，block为<font color="red">0</font>，进程收到1号信号不会被阻塞(屏蔽)，handler为<code>SIG_DFL</code>，表示收到1号信号后的处理方式为<code>默认信号处理</code>程序。<font color="Hotpink"><strong>SIGHUP信号未阻塞也未产生过，当它递达时执行默认处理动作</strong>。</font></li>
+<li>上图的2号信号，pending位图数据为<code>1</code>，表示当前进程收到2号信号，信号处于<code>未决</code>状态，等待递达，递达后清除该位；block为<code>1</code>，2号信号被<code>屏蔽</code>，在解除2号信号的屏蔽之前，未决的2号信号不会被递达；handler为<code>SIG_IGN</code>，收到2号信号的处理方式为<code>忽略信号</code>的处理程序。<font color="hotpink">这个信号产生过，但是被屏蔽了，它的处理动作时忽略</font>，<strong>但是在没有解除阻塞前不能忽略该信号，因为进程仍有机会改变处理动作之后再解除阻塞。</strong></li>
+<li>上图的3号信号，pending位图数据为1，表示当前进程收到3号信号，信号处于未决状态，等待递达，block为0，3号信号不会被屏蔽，在进程内核态返回用户态时，3号信号会被递达，递达的方式是用户自定义处理。<font color="hotpink"><strong>SIGHUP信号产生过，并且没有被阻塞，当它递达时执行默认处理动作。</strong></font></li>
+<li>还有一种情况，信号从未产生，但是一旦产生就将该信号阻塞。</li>
+</ol>
+<blockquote>
+<p><strong>特殊情况</strong>：如果在进程解除对某信号的阻塞之前这种信号产生过多次,将如何处理？<br>
+答：Linux是这样实现的，常规信号在递达之前产生多次只计一次,而实时信号在递达之前产生多次可以依次放在一个队列里。</p>
+</blockquote>
+<p>我们可以通过一个伪代码来理解信号的接收：</p>
+<pre><code class="prism language-c"><span class="token keyword">int</span> <span class="token function">isHandler</span><span class="token punctuation">(</span><span class="token keyword">int</span> num<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">if</span><span class="token punctuation">(</span>block <span class="token operator">&amp;</span> signo<span class="token punctuation">)</span>
+	<span class="token punctuation">{</span>
+		<span class="token comment">//如果对应的signo信号被block，就进入</span>
+		<span class="token comment">//根本就不会看signo信号是否被接收</span>
+	<span class="token punctuation">}</span><span class="token keyword">else</span><span class="token comment">//该信号没有被block</span>
+	<span class="token punctuation">{</span>
+		<span class="token keyword">if</span><span class="token punctuation">(</span>signo <span class="token operator">&amp;</span> pending<span class="token punctuation">)</span><span class="token comment">//如果该信号接收到了</span>
+		<span class="token punctuation">{</span>
+			handler_arr<span class="token punctuation">[</span>signo<span class="token punctuation">]</span><span class="token punctuation">(</span>signo<span class="token punctuation">)</span><span class="token punctuation">;</span>
+			<span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>	
+		<span class="token punctuation">}</span>
+	<span class="token punctuation">}</span>
+	<span class="token keyword">return</span> <span class="token number">1</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p><strong>源码具体结构：</strong></p>
+<p><img src="https://img-blog.csdnimg.cn/3562ef4b03db43d5b1532c90b8f4cfde.png" alt="在这里插入图片描述"></p>
+<p><strong>上图的pending表和block表，都用一个相同的数据类型sigset_t来实现位图存储信息</strong></p>
+<h3><a id="3sigset_t_996"></a>（3）信号集(sigset_t)</h3>
+<p>每个信号只有一个bit的未决标志，非0即1，不记录该信号产生了多少次，阻塞标志也是这样表示的。因此，<font color="hotpink">未决和阻塞标志可以用相同的数据类型sigset_t来存储，sigset_t称为信号集，这个类型可以表示每个信号的“有效”或“无效”状态。</font>在阻塞信号集中“有效”和“无效”的含义是该信号是否被阻塞，而在未决信号集中“有 效”和“无效”的含义是该信号是否处于未决状态。 阻塞信号集也叫做当前进程的信号屏蔽字(Signal Mask)，这里的“屏蔽”应该理解为阻塞而不是忽略。</p>
+<p>sigset_t类型的定义如下：（不同操作系统实现sigset_t的方案可能不同）</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name">_SIGSET_NWORDS</span> <span class="token expression"><span class="token punctuation">(</span><span class="token number">1024</span> <span class="token operator">/</span> <span class="token punctuation">(</span><span class="token number">8</span> <span class="token operator">*</span> <span class="token keyword">sizeof</span> <span class="token punctuation">(</span><span class="token keyword">unsigned</span> <span class="token keyword">long</span> <span class="token keyword">int</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span></span></span>
+<span class="token keyword">typedef</span> <span class="token keyword">struct</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">unsigned</span> <span class="token keyword">long</span> <span class="token keyword">int</span> __val<span class="token punctuation">[</span>_SIGSET_NWORDS<span class="token punctuation">]</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span> __sigset_t<span class="token punctuation">;</span>
+
+<span class="token keyword">typedef</span> __sigset_t <span class="token class-name">sigset_t</span><span class="token punctuation">;</span>
+</code></pre>
+<blockquote>
+<p>注意：sigset_t的实现在不同的操作系统中实现是不相同的，可能是一个无符号整数，可能是一个结构体。所以我们不可以直接使用 “｜” 和 “&amp;” 来操作sigset_t这个类型，<font color="hotpink"><strong>OS系统中存在专门到系统调用来操作sigset_t类型，这些函数称为<mark>信号集操作函数</mark>。</strong></font></p>
+</blockquote>
+<h3><a id="4_1014"></a>（4）信号集操作函数</h3>
+<p>sigset_t类型对于每种信号用一个bit表示“有效”或“无效”，至于这个类型内部如何存储这些bit则依赖于系统的实现，从使用者的角度是不必关心的，使用者只能调用以下函数来操作sigset_t变量，而不应该对它的内部数据做任何解释，比如用printf直接打印sigset_t变量是没有意义的。</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;signal.h&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">sigemptyset</span><span class="token punctuation">(</span><span class="token class-name">sigset_t</span> <span class="token operator">*</span>set<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">int</span> <span class="token function">sigfillset</span><span class="token punctuation">(</span><span class="token class-name">sigset_t</span> <span class="token operator">*</span>set<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">int</span> <span class="token function">sigaddset</span><span class="token punctuation">(</span><span class="token class-name">sigset_t</span> <span class="token operator">*</span>set<span class="token punctuation">,</span> <span class="token keyword">int</span> signum<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">int</span> <span class="token function">sigdelset</span><span class="token punctuation">(</span><span class="token class-name">sigset_t</span> <span class="token operator">*</span>set<span class="token punctuation">,</span> <span class="token keyword">int</span> signum<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">int</span> <span class="token function">sigismember</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token class-name">sigset_t</span> <span class="token operator">*</span>set<span class="token punctuation">,</span> <span class="token keyword">int</span> signum<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<ol>
+<li><strong>sigemptyset</strong>函数：初始化set所指向的信号集，使其中所有信号的对应bit清零，表示该信号集不包含任何有效信号。</li>
+<li><strong>sigfillset</strong>函数：初始化set所指向的信号集，使其中所有信号的对应bit置位，表示该信号集的有效信号包括系统支持的所有信号。</li>
+<li><strong>sigaddset</strong>函数：在set所指向的信号集中signum信号对应位置添加某种有效信号。</li>
+<li><strong>sigdelset</strong>函数：在set所指向的信号集中signum信号对应位置删除某种有效信号。</li>
+<li><strong>sigemptyset、sigfillset、sigaddset和sigdelset函数都是成功返回0，出错返回-1。</strong></li>
+<li><strong>sigismember</strong>函数：判断在set所指向的信号集中是否包含某种信号，若<strong>包含则返回1，不包含则返回0，调用失败返回-1</strong>。</li>
+</ol>
+<blockquote>
+<p>注意： 在初次使用sigset_t类型的变量之前，一定要调用sigemptyset或sigfillset做初始化，使信号处于确定的状态。</p>
+</blockquote>
+<h3><a id="5sigprocmask_1036"></a>（5）阻塞信号集操作函数(sigprocmask接口)</h3>
+<p>上面所写的信号集操作函数是对信号集这个变量进行操作，若我们想要对<font color="red"><strong>修改或获取进程的信号屏蔽字</strong></font>，就需要调用sigprocmask接口。</p>
+<p><strong>功能：获取或修改进程的信号屏蔽字</strong></p>
+<p>函数原型：</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;signal.h&gt;</span></span>
+<span class="token keyword">int</span>  <span class="token function">sigprocmask</span><span class="token punctuation">(</span><span class="token keyword">int</span> how<span class="token punctuation">,</span> <span class="token keyword">const</span> <span class="token class-name">sigset_t</span> <span class="token operator">*</span>set<span class="token punctuation">,</span> <span class="token class-name">sigset_t</span><span class="token operator">*</span> oldset<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>参数说明：</p>
+<blockquote>
+<ul>
+<li>第一个参数how，表示要对信号屏蔽字进行的操作类型</li>
+<li>第二个参数set，就是我们要设置的信号集的指针</li>
+<li>第三个参数oldset，是一个输出型参数，可以获取到当前进程的信号屏蔽字，保存到oldset中，用作备份</li>
+</ul>
+</blockquote>
+<p><font color="red">set和oldset详细说明：</font></p>
+<ol>
+<li>如果odset是非空指针，则读取进程当前的信号屏蔽字通过odset参数传出。</li>
+<li>如果set是非空指针，则更改进程的信号屏蔽字，参数how指示如何更改。</li>
+<li>如果odset和set都是非空指针，则先将原来的信号屏蔽字备份到oset里，然后根据set和how参数更改信号屏蔽字。</li>
+</ol>
+<p><font color="red">参数how的详细说明：</font></p>
+
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SIG_BLOCK</td>
+<td>set包含了我们希望添加到当前信号屏蔽字的信号，相当于mask｜= mask</td>
+</tr>
+<tr>
+<td>SIG_UNBLOCK</td>
+<td>set包含了我们希望从当前信号屏蔽字中解除阻塞的信号，相当于mask&amp;=(~mask)</td>
+</tr>
+<tr>
+<td>SIG_SETMASK</td>
+<td>设置当前信号屏蔽字为set所指向的值，相当于mask=set</td>
+</tr>
+</tbody>
+</table><p><strong>返回值</strong>：成功返回0，出错返回-1。</p>
+<blockquote>
+<p>注意： 如果调用sigprocmask解除了对当前若干个未决信号的阻塞，则在sigprocmask函数返回前，至少将其中一个信号递达。</p>
+</blockquote>
+<h3><a id="6sigpending_1066"></a>（6）未决信号集操作函数(sigpending接口)</h3>
+<p>pending表中存放着当前进程<code>未决信号集</code>，只能获取数据，不能修改。</p>
+<p>功能： 读取进程的未决信号集</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;signal.h&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">sigpending</span><span class="token punctuation">(</span><span class="token class-name">sigset_t</span> <span class="token operator">*</span>set<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p><font color="red"><strong>参数说明：</strong></font></p>
+<blockquote>
+<ul>
+<li>set：读取当前进程的信号屏蔽字到set指向的信号屏蔽中</li>
+</ul>
+</blockquote>
+<p><strong>返回值</strong>： 成功返回0，失败返回-1</p>
+<p><strong>实例1</strong>： 把进程中信号屏蔽字2号信号进行阻塞，然后隔1s对未决信号集进行打印，观察现象</p>
+<p><img src="https://img-blog.csdnimg.cn/aa15f288e99f4fe294232808eacfcbec.png" alt="在这里插入图片描述"></p>
+<p>当程序刚刚运行时，因为没有收到任何信号，所以pending表一直是全0，当向该进程发送2号信号后，由于2号信号是阻塞的，因此2号信号一直处于未决状态，所以我们看到pending表中的第二个数字一直是1。</p>
+<p><img src="https://img-blog.csdnimg.cn/37593ed9fd28444986614c6cfc5eaca3.png" alt="在这里插入图片描述"></p>
+<p>为了看到2号信号递达后pending表的变化，我们可以设置一段时间后，自动解除2号信号的阻塞状态，解除2号信号的阻塞状态后2号信号就会立即被递达。因为2号信号的默认处理动作是终止进程，所以为了看到2号信号递达后的pending表，我们可以将2号信号进行捕捉，让2号信号递达时执行我们所给的自定义动作。</p>
+<p><img src="https://img-blog.csdnimg.cn/d5632bc9f13e4e5e82547eb9d0f0d5b3.png" alt="在这里插入图片描述"></p>
+<p><img src="https://img-blog.csdnimg.cn/254d8e2aca1f4d3a84908b214a8fa499.png" alt="在这里插入图片描述"><br>
+此时就可以看到，进程收到2号信号后，该信号在一段时间内处于未决状态，当解除2号信号的屏蔽后，2号信号就会立即递达，执行我们所给的自定义动作，而此时的pending表也变回了全0。</p>
+<blockquote>
+<p><strong>细节</strong>： 在解除2号信号后，2号信号的自定义动作是在打印“恢复信号屏蔽字”之前执行的。因为如果调用sigprocmask解除对当前若干个未决信号的阻塞，则在sigprocmask函数返回前，至少将其中一个信号递达。</p>
+</blockquote>
+<h2><a id="6_1098"></a>6、信号产生后----捕捉信号的时机</h2>
+<p>如果信号的处理动作是用户自定义函数，在信号递达时就调用这个函数，这称为捕捉信号。</p>
+<blockquote>
+<p><strong>首先给出结论</strong>：信号产生后不是立即被处理的，而是先将信号保存起来，然后在合适的时候进行处理，这个合适的时候，具体指的是<font color="red">进程从用户态切换回内核态时进行处理。</font></p>
+</blockquote>
+<h3><a id="1_1104"></a>（1）内核态&amp;&amp;用户态</h3>
+<ul>
+<li>内核态：系统中既有操作系统的程序，也有普通用户程序。<font color="hotpink">当CPU执行OS的代码和数据（内核空间），CPU所处的状态就是内核态。</font>即需要执行操作系统的程序就必须转换到内核态才能执行。 内核态可以使用计算机所有的硬件资源。<strong>权限比较高，权限位R0</strong>。</li>
+<li>用户态：就是CPU执行用户的代码和数据时，CPU所处的状态。⽤户态的 CPU 只能受限地访问用户的内存代码数据（用户空间），并且不允许访问外围设备，<strong>权限比较低，权限位R3</strong>。</li>
+</ul>
+<blockquote>
+<p><strong>从用户态切换为内核态通常有如下几种情况</strong>：</p>
+<ol>
+<li>需要进行系统调用时。</li>
+<li>当前进程的时间片到了，导致进程切换。</li>
+<li>产生异常、中断、陷阱等。</li>
+</ol>
+</blockquote>
+<blockquote>
+<p><strong>与之相对应，从内核态切换为用户态有如下几种情况</strong>：</p>
+<ol>
+<li>系统调用返回时。</li>
+<li>进程切换完毕。</li>
+<li>异常、中断、陷阱等处理完毕。</li>
+</ol>
+</blockquote>
+<p><font color="red">其中，由用户态切换为内核态我们称之为陷入内核。每当我们需要陷入内核的时，本质上是因为我们需要执行操作系统的代码，比如系统调用函数是由操作系统实现的，我们要进行系统调用就必须先由用户态切换为内核态。</font></p>
+<blockquote>
+<p><strong>特权级的概念：</strong><br>
+对于任何操作系统来说，创建一个进程是核心功能。创建进程要做很多工作，会消耗很多物理资源。比如分配物理内存，父子进程拷贝信息，拷贝设置页目录页表等等，这些工作得由特定的进程去做，所以就有了特权级别的概念。最关键的工作必须交给特权级最高的进程去执行，这样可以做到集中管理，减少有限资源的访问和使用冲突。inter x86架构的cpu一共有四个级别，0-3级，0级特权级最高，3级特权级最低。</p>
+</blockquote>
+<blockquote>
+<p><strong>用户态和内核态的概念：</strong><br>
+当一个进程在执行用户自己的代码时处于用户运行态（用户态），此时特权级最低，为3级，是普通的用户进程运行的特权级，大部分用户直接面对的程序都是运行在用户态。Ring3状态不能访问Ring0的地址空间，包括代码和数据；当一个进程因为系统调用陷入内核代码中执行时处于内核运行态（内核态），此时特权级最高，为0级。执行的内核代码会使用当前进程的内核栈，每个进程都有自己的内核栈。</p>
+</blockquote>
+<h3><a id="2_1130"></a>（2）内核空间&amp;&amp;用户空间</h3>
+<p>CPU内有许多寄存器保存了当前进程的状态。<font color="purple">当CPU处于用户态是，使用的是用户级页表，只能访问用户的数据和代码（用户空间）</font>。<font color="blue">当CPU处于内核态时，使用的是内核级页表，只能访问内核级的数据和代码（内核空间）。</font></p>
+<p>并且每个进程都有自己的地址空间，而该地址空间由内核空间和用户空间组成：</p>
+<ul>
+<li>用户空间主要存放的是用户写的代码和数据通过用户级页表建立虚拟地址和物理地址的映射关系</li>
+<li><font color="hotpink">内核空间主要存储的是OS的代码和数据通过<strong>内核级页表</strong>建立虚拟地址和物理地址的映射关系</font></li>
+</ul>
+<p>内核级页表是一个全局的页表，它被所以进程共享，它用来维护操作系统的代码与进程之间的关系。因此，<strong>在每个进程的进程地址空间中，用户空间是属于当前进程的，每个进程看到的代码和数据是完全不同的，</strong><font color="red">但内核空间所存放的都是操作系统的代码和数据，所有进程看到的都是一样的内容，不同进程地址空间的内核空间映射到了内存中的同一块物理地址。</font></p>
+<p><img src="https://img-blog.csdnimg.cn/c7a966a7955848939cdd8859a4340269.png" alt="在这里插入图片描述"></p>
+<p>所以无论如何进行进程切换，进程始终可以保证找到同一个OS系统。</p>
+<p>需要注意的是，虽然每个进程都能够看到操作系统，但并不意味着每个进程都能够随时对其进行访问。</p>
+<blockquote>
+<p>如何理解进程切换？</p>
+<ul>
+<li>将CPU切换位内核态，在当前进程的进程地址空间中的内核空间，找到操作系统的代码和数据。</li>
+<li>执行操作系统的进程切换代码，将当前进程的代码和数据剥离下来，并换上另一个进程的代码和数据。</li>
+<li>注意： 当你访问用户空间时你必须处于用户态，当你访问内核空间时你必须处于内核态。</li>
+</ul>
+</blockquote>
+<h3><a id="3_1155"></a>（3）内核如何实现信号的捕捉</h3>
+<ol>
+<li>当我们在执行主控制流程的时候，可能因为某些情况而<code>陷入内核</code>，当内核处理完毕准备返回用户态时，就需要<code>检查信号pending</code>。（此时仍处于内核态，有权力查看当前进程的pending位图）</li>
+<li>在查看pending位图时，如果发现有未决信号，并且该信号没有被阻塞，那么此时就需要该信号进行处理。</li>
+</ol>
+<p><font color="red">如果待处理信号的处理动作是 默认或者忽略</font>，则执行该信号<code>递达</code>后 清除对应的pending标志位，如果没有新的信号要递达，就直接返回用户态，从主控制流程中上次被中断的地方继续向下执行即可。</p>
+<p><font color="red">但如果待处理信号是 自定义捕捉的</font>，<strong>即该信号的处理动作是由用户提供的</strong>，那么<font color="purple">处理该信号时就需要先返回用户态执行对应的自定义处理动作，执行完后再通过特殊的系统调用sigreturn再次陷入内核并清除对应的pending标志位</font>，完成信号递达，<strong>如果没有新的信号要递达，就直接返回用户态，继续执行主控制流程的代码。</strong></p>
+<p><strong>下面给演示信号捕捉的整个过程：</strong><img src="https://img-blog.csdnimg.cn/c7624798abed4d58bcb470daf29c8aab.png" alt="在这里插入图片描述"></p>
+<p>从上面的图可以看出，进程是在返回用户态之前对信号进行检测，检测pending位图，根据信号处理动作，来对信号进行处理。这个处理动作是在内核态返回用户态后进行执行的。</p>
+<blockquote>
+<p>sighandler和main函数使用不同的堆栈空间，它们之间不存在调用和被调用的关系，是两个独立的控制流程。</p>
+</blockquote>
+<blockquote>
+<p><strong>注意：为什么在处理信号时自定义捕捉的情况下，CPU需要先返回用户态执行，而不是直接执行用户的代码呢？</strong><br>
+答：直接执行用户的代码理论是可行的，但是由于是我们用户所写的捕捉信号方式，我们用户可能在该代码中执行了超出自己用户权限的行为，可能操作是非法的，如果CPU以内核态的状态执行，就有可能导致我们错误访问内核而导致OS系统奔溃！</p>
+</blockquote>
+<h3><a id="4sigaction_1175"></a>（4）sigaction</h3>
+<p>捕捉信号除了用前面用过的signal函数之外，我们还可以使用sigaction函数对信号进行捕捉，sigaction函数的函数原型如下：</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;signal.h&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">sigaction</span><span class="token punctuation">(</span><span class="token keyword">int</span> signum<span class="token punctuation">,</span> <span class="token keyword">const</span> <span class="token keyword">struct</span> <span class="token class-name">sigaction</span> <span class="token operator">*</span>act<span class="token punctuation">,</span> <span class="token keyword">struct</span> <span class="token class-name">sigaction</span> <span class="token operator">*</span>oldact<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<blockquote>
+<p>sigaction函数可以读取和修改与指定信号相关联的处理动作，<strong>该函数调用成功返回0，出错返回-1。</strong></p>
+</blockquote>
+<p><strong>参数说明：</strong></p>
+<ul>
+<li>signum代表指定信号的编号。</li>
+<li>若act指针非空，则根据act修改该信号的处理动作。</li>
+<li>若oldact指针非空，则通过oldact传出该信号原来的处理动作。</li>
+</ul>
+<p><font color="red">其中，参数act和oldact都是结构体指针变量，该结构体的定义如下：</font></p>
+<pre><code class="prism language-c"><span class="token keyword">struct</span> <span class="token class-name">sigaction</span> <span class="token punctuation">{</span>
+	<span class="token keyword">void</span><span class="token punctuation">(</span><span class="token operator">*</span>sa_handler<span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token keyword">int</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token keyword">void</span><span class="token punctuation">(</span><span class="token operator">*</span>sa_sigaction<span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token keyword">int</span><span class="token punctuation">,</span> <span class="token class-name">siginfo_t</span> <span class="token operator">*</span><span class="token punctuation">,</span> <span class="token keyword">void</span> <span class="token operator">*</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token class-name">sigset_t</span>   sa_mask<span class="token punctuation">;</span>
+	<span class="token keyword">int</span>        sa_flags<span class="token punctuation">;</span>
+	<span class="token keyword">void</span><span class="token punctuation">(</span><span class="token operator">*</span>sa_restorer<span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+</code></pre>
+<p><font color="red"><strong>结构体的第一个成员sa_handler：</strong></font></p>
+<ul>
+<li>将sa_handler赋值为常数SIG_IGN传给sigaction函数，表示忽略信号。</li>
+<li>将sa_handler赋值为常数SIG_DFL传给sigaction函数，表示执行系统默认动作。</li>
+<li>将sa_handler赋值为一个函数指针，表示用自定义函数捕捉信号，或者说向内核注册了一个信号处理函数。</li>
+</ul>
+<p>注意：<br>
+所注册的信号处理函数的返回值为void，参数为int，通过参数可以得知当前信号的编号，这样就可以用同一个函数处理多种信号。显然这是一个回调函数，不是被main函数调用，而是被系统所调用。</p>
+<p><font color="red"><strong>结构体的第二个成员sa_sigaction：</strong></font></p>
+<ul>
+<li>sa_sigaction是实时信号的处理函数。</li>
+</ul>
+<p><font color="red"><strong>结构体的第三个成员sa_mask：</strong></font></p>
+<ul>
+<li>首先需要说明的是，当某个信号的处理函数被调用，内核自动将当前信号加入进程的信号屏蔽字，当信号处理函数返回时自动恢复原来的信号屏蔽字，这样就保证了在处理某个信号时，如果这种信号再次产生，那么它会被阻塞到当前处理结束为止。</li>
+<li>如果在调用信号处理函数时，除了当前信号被自动屏蔽之外，还希望自动屏蔽另外一些信号，则用sa_mask字段说明这些需要额外屏蔽的信号，当信号处理函数返回时，自动恢复原来的信号屏蔽字。</li>
+</ul>
+<p><font color="red"><strong>结构体的第四个成员sa_flags：</strong></font></p>
+<ul>
+<li>sa_flags字段包含一些选项，这里直接将sa_flags设置为0即可。</li>
+</ul>
+<p><font color="red"> <strong>结构体的第五个成员sa_restorer：</strong></font></p>
+<ul>
+<li>该参数没有使用。</li>
+</ul>
+<blockquote>
+<p><strong>下面通过一个例子进行演示：<br>
+首先我们将2号信号进行捕捉将2号信号的处理动作改为自定义捕捉同时我们在处理2号信号的同时将3号信号也给屏蔽了</strong>：</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/e8add298b68c45dfb9d5cc907de8a67e.png" alt="在这里插入图片描述"><br>
+运行代码后，第一次向进程发送2号信号，执行我们自定义的打印动作，当我们再次向进程发送2号信号，就执行该信号的默认处理动作了，即终止进程。<img src="https://img-blog.csdnimg.cn/f5152b36b4bd41f0b7061c11a755645d.png" alt="在这里插入图片描述"></p>
+</div>
+</body>
+
+</html>

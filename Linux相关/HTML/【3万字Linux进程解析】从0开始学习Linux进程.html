@@ -1,0 +1,856 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>【3万字Linux进程解析】从0开始学习Linux进程</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__html"><p></p><div class="toc"><h3>文章目录</h3><ul><li><a href="#_5">一、认识冯诺伊曼系统</a></li><ul><li><a href="#1__18">1. 冯诺伊曼体系的理解</a></li><li><a href="#2__29">2. 从硬件角度理解数据的流动</a></li></ul><li><a href="#_37">二、操作系统</a></li><ul><li><a href="#1__39">1. 概念</a></li><li><a href="#2_OS_44">2. OS系统的设计目的</a></li><li><a href="#3_OS_50">3. OS系统的定位</a></li><ul><li><a href="#1OS_55">（1）解析OS系统与上层、下层的关系</a></li><ul><li><a href="#A__58">A. 为什么有驱动层？什么是驱动层？</a></li><li><a href="#B__64">B. 什么是系统调用接口？</a></li><li><a href="#C__69">C. 为什么需要系统调用接口？</a></li><li><a href="#D__74">D. 什么是用户操作接口？为什么需要用户操作接口？</a></li></ul></ul></ul><li><a href="#Linux_79">三、Linux系统下的进程管理（初阶）</a></li><ul><li><a href="#1_81">1、什么是管理？</a></li><li><a href="#2_OS_85">2. OS系统如何管理硬件呢？</a></li><li><a href="#3__90">3. 什么是进程？</a></li><ul><li><a href="#1_99">（1）进程与程序的区别</a></li><li><a href="#2_103">（2）进程的组成</a></li></ul><li><a href="#4_PCB_108">4. 描述进程的结构体（PCB）</a></li><ul><li><a href="#1__111">1. 如何理解创建进程和删除进程？</a></li><li><a href="#2_task_struct__PCB_114">2. task_struct - PCB的一种</a></li><li><a href="#3__119">3. 查看进程</a></li><ul><li><a href="#1_121">（1）在进程目录下查看进程信息</a></li><li><a href="#2PS_129">（2）PS命令</a></li></ul><li><a href="#4_task__struct_155">4. task_ struct内容分类</a></li><li><a href="#5__177">5. 进程管理初次总结</a></li></ul><li><a href="#5__180">5. 理解进程是如何被调度的</a></li><ul><li><a href="#1_184">（1）为什么要保存上下文数据，为什么要恢复？</a></li><li><a href="#2_188">（2）进程调度总结</a></li></ul></ul><li><a href="#Linux_193">四、Linux进程进阶</a></li><ul><li><a href="#1_fork_195">1. 通过系统调用（fork）创建进程</a></li><li><a href="#2__203">2. 操作系统的进程状态</a></li><ul><li><a href="#1_204">（1）三种基本状态</a></li><li><a href="#2_217">（2）进程的其他状态</a></li></ul><li><a href="#3_linux_236">3. linux系统下的进程状态</a></li><ul><li><a href="#1R_TASK_RUNNING_263">（1）R (TASK_RUNNING)，可执行状态。</a></li><li><a href="#2S_TASK_INTERRUPTIBLE_271">（2）S (TASK_INTERRUPTIBLE)，可中断的睡眠状态。</a></li><li><a href="#3_DTASK_UNINTERRUPTIBLE_282">（3） D（TASK_UNINTERRUPTIBLE），不可中断状态</a></li><li><a href="#4Z_TASK_DEAD__EXIT_ZOMBIE_287">（4）Z (TASK_DEAD – EXIT_ZOMBIE)，退出状态，进程成为僵尸进程。</a></li><li><a href="#5_310">（5）特殊的进程状态，孤儿进程</a></li></ul><li><a href="#4__324">4. 进程的优先级</a></li><ul><li><a href="#1_325">（1）优先级基本概念</a></li><li><a href="#2_329">（2）为什么需要优先级</a></li><li><a href="#3_332">（3）查看，修改优先级</a></li><ul><li><a href="#A__334">A. 查看优先级</a></li><li><a href="#B_PRI__NI_346">B. PRI 和 NI</a></li><li><a href="#C___top_353">C. 查看优先级的命令 - top</a></li></ul></ul><li><a href="#5__366">5. 其他概念（了解）</a></li></ul><li><a href="#_374">五、环境变量</a></li><ul><li><a href="#1__376">1. 基本概念</a></li><li><a href="#2__381">2. 常见环境变量</a></li><li><a href="#3_PATH_389">3. 理解环境变量PATH</a></li><li><a href="#4_HOME_396">4. 环境变量HOME</a></li><li><a href="#5_SHELL_405">5. 环境变量SHELL</a></li><li><a href="#6__414">6. 环境变量相关的命令</a></li><ul><li><a href="#1env_422">(1)env命令</a></li><li><a href="#2setunset_434">(2)set和unset命令</a></li></ul><li><a href="#7__447">7. 本地变量和环境变量（小结）</a></li><li><a href="#8__463">8. 命令行参数和环境变量的组织方式</a></li><ul><li><a href="#1_465">（1）命令行参数的组织方式</a></li><li><a href="#2_504">（2）环境变量的组织方式</a></li></ul><li><a href="#9__519">9. 通过代码获取环境变量的三种方式</a></li></ul><li><a href="#_568">六、进程地址空间</a></li><ul><li><a href="#1__577">1. 验证虚拟地址的存在</a></li><li><a href="#2__617">2. 什么是进程地址空间？</a></li><ul><li><a href="#1_646">（1）如何理解区域扩大？</a></li></ul><li><a href="#3__651">3. 页表</a></li><li><a href="#4__666">4. 父子进程间的写时拷贝</a></li><ul><li><a href="#1_671">（1）为什么设计写时拷贝？（优点）</a></li><li><a href="#2_676">（2）现象解释</a></li></ul><li><a href="#5___688">5.  为什么需要进程地址空间？（重要）</a></li><li><a href="#6__703">6. 进程地址空间和可执行程序的对应关系</a></li><li><a href="#7__707">7. 重新理解进程</a></li></ul><li><a href="#_713">七、进程终止</a></li><ul><li><a href="#1__715">1. 进程终止场景</a></li><li><a href="#2__720">2. 进程退出码</a></li><li><a href="#3__741">3. 进程退出方法</a></li><ul><li><a href="#1main_743">（1）从main函数返回</a></li><ul><li><a href="#A_main_746">A. 为什么main函数需要返回值？</a></li><li><a href="#B__748">B. 返回给谁？</a></li><li><a href="#C_0_751">C. 为什么经常返回0？</a></li></ul><li><a href="#2exit_754">（2）调用exit</a></li><li><a href="#3_exit_766">（3）调用_exit</a></li></ul></ul><li><a href="#_783">八、进程等待</a></li><ul><li><a href="#1__785">1. 什么是进程等待？</a></li><li><a href="#2__787">2. 为什么需要进程等待？</a></li><li><a href="#3__792">3. 进程等待的方法</a></li><ul><li><a href="#1wait_794">（1）wait方法</a></li><li><a href="#2waitpid_818">（2）waitpid方法</a></li></ul><li><a href="#4_status_839">4. 通过status获取子进程退出信息</a></li><li><a href="#5_options_882">5. 通过options控制进程等待方式</a></li><ul><li><a href="#1_892">（1）阻塞等待</a></li><li><a href="#2_902">（2）非阻塞等待</a></li></ul></ul><li><a href="#_918">九、进程程序替换</a></li><ul><li><a href="#1__922">1. 替换原理</a></li><li><a href="#2__937">2. 六种进程替换函数</a></li><ul><li><a href="#1_939">（1）替换函数</a></li><li><a href="#2_952">（2）六种替换函数的关系</a></li><li><a href="#3execl_971">（3）execl</a></li><li><a href="#4execv_982">（4）execv</a></li><li><a href="#5execlpexecvp_993">（5）execlp和execvp</a></li><li><a href="#6execleexecve_1001">（6）execle和execve</a></li><li><a href="#7exec_1019">（7）exec*函数关系图</a></li></ul></ul><li><a href="#shell_1025">十、实现一个简陋的shell</a></li><ul><li><a href="#1__1039">1. 打印提示行</a></li><li><a href="#2__1044">2. 获取命令行</a></li><li><a href="#3__1053">3. 解析命令行</a></li><li><a href="#4_fork_1063">4. fork创建子进程，替换进程</a></li><li><a href="#5__1067">5. 内建命令</a></li><li><a href="#6_myshell_1077">6. myshell实现</a></li></ul></ul></div><p></p>
+<hr>
+<h1><a id="_5"></a>一、认识冯诺伊曼系统</h1>
+<p>我们常见的计算机的的体系结构都是遵守冯诺伊曼体系。</p>
+<p><img src="https://img-blog.csdnimg.cn/82e5495c045240f2918b56077759121e.png" alt="在这里插入图片描述"></p>
+<p>我们所认识的计算机，都是有一个个的硬件组件组成。</p>
+<ul>
+<li>输入单元：包括键盘, 鼠标，硬盘，网卡等</li>
+<li>输出单元：显示器，网卡，硬盘等</li>
+<li>中央处理器(CPU)：<br>
+运算器：进行数据运算和逻辑运算<br>
+控制器：外设有信号时，CPU配合外设将数据读到内存中</li>
+</ul>
+<h2><a id="1__18"></a>1. 冯诺伊曼体系的理解</h2>
+<p>其中输入设备和输出设备统称为外设（IO设备），由于外设需要与用户进行直接接触，所以外设的运行速度较慢。而CPU由运算器和控制器组成，运算器负责数据按照程序的处理办法进行计算，控制器控制程序的逻辑；CPU的运算速度是非常快的，如果外设和CPU直接进行数据交互的话，<mark><strong>那么整个体系的运行速度就会受到外设的限制，变慢。</strong></mark></p>
+<p>为了解决上述的问题，我们需要阻止CPU和外设在数据层面的直接交互，于是就有了内存，内存和外设进行数据上的直接交互，外设与内存进行数据上的时间交互。<strong>CPU读取数据都是从内存的读取，提高了整个体系的运算效率。</strong><mark><strong>内存是通过什么方式提高整个体系的效率的呢？</strong></mark></p>
+<p>这就与“<mark><strong>局部性原理</strong></mark>”有关了，什么是局部性原理呢？在计算机学科的概念中，局部性原理是一个常用的术语，指处理器在<strong>访问某些数据时短时间内存在重复访问</strong>，某些数据或者位置访问的概率极大，大多数时间只<strong>访问局部的数据</strong>（主要可以分为时间局部性和空间局部性两种）。</p>
+<p>所以在进行内存和外设之间的交互时，并不是CPU处理一条数据才加载一次数据，<strong>而是<mark>将外设中的可能被访问的数据并加载入内存</mark></strong>（由OS系统完成）。<strong>这样加载入后CPU就直接在内存中读取数据，数据运算完成后再将数据放入内存中，再将数据显示到输出设备上</strong>；减少了CPU与外设的交互，提高了整个体系的效率。</p>
+<p><img src="https://img-blog.csdnimg.cn/0a9a248caeb548dc85e0b6ddaa001f13.png" alt="在这里插入图片描述"></p>
+<h2><a id="2__29"></a>2. 从硬件角度理解数据的流动</h2>
+<ul>
+<li>对冯诺依曼的理解，不能停留在概念上，要深入到对软件数据流理解上，请解释，从你登录上qq开始和某位朋友聊天开始，数据的流动过程。从你打开窗口，开始给他发消息，到他的到消息之后的数据流动过程。如果是在qq上发送文件呢？</li>
+</ul>
+<p><img src="https://img-blog.csdnimg.cn/f97470ef50be472dbcab1f6c99c9aa38.png" alt="在这里插入图片描述"></p>
+<hr>
+<h1><a id="_37"></a>二、操作系统</h1>
+<h2><a id="1__39"></a>1. 概念</h2>
+<p>任何计算机系统都包含一个基本的程序集合，称为操作系统(OS)；<strong><mark>OS系统是一款进行软硬件资源管理的软件</mark></strong>。笼统的理解，操作系统包括：</p>
+<blockquote>
+<p><strong>内核（进程管理，内存管理，文件管理，驱动管理）<br>
+其他程序（例如函数库，shell程序等等）</strong></p>
+</blockquote>
+<h2><a id="2_OS_44"></a>2. OS系统的设计目的</h2>
+<blockquote>
+<p><strong>与硬件交互，管理所有的软硬件资源<br>
+为用户程序（应用程序）提供一个良好的执行环境</strong></p>
+</blockquote>
+<ul>
+<li><strong><mark>对下</mark>：管理好软硬件资源</strong></li>
+<li><strong><mark>对上</mark>：让用户从冗余的计算调用中解放出来，为用户提供良好的秩序环境</strong></li>
+</ul>
+<h2><a id="3_OS_50"></a>3. OS系统的定位</h2>
+<p><img src="https://img-blog.csdnimg.cn/19a489afc1884878a28892b4f89ae2f2.png" alt="在这里插入图片描述"><br>
+<strong>OS系统是一款进行软硬件资源管理的软件</strong></p>
+<h3><a id="1OS_55"></a>（1）解析OS系统与上层、下层的关系</h3>
+<p>OS系统是进行管理的软件，它的管理系统主要分为4个：内存管理，进程管理，文件管理，驱动管理。</p>
+<h4><a id="A__58"></a>A. 为什么有驱动层？什么是驱动层？</h4>
+<p>最底层是冯诺伊曼体系的硬件集合，如果没有驱动层，OS系统就需要直接与硬件进行交互，因为硬件的种类是非常多的，他们的访问方式也是不同的，<strong>此时如果某个硬件的访问方式发生变化，就需要修改OS系统，这样成本过高</strong>，所以我们不可以让OS系统直接对硬件进行访问，因此<strong>增加驱动来使OS系统和硬件无关</strong>。</p>
+<p><mark><strong>驱动给每一个硬件匹配了一个软件方式来进行与硬件的交互</strong></mark>（直接与硬件联系，访问，读写，观察状态等等）。这样OS系统和驱动交互使用统一的方式，而驱动与不同硬件采用不同的交互方式，此后OS系统向硬件要数据的时候就会向驱动去索要。</p>
+<p><img src="https://img-blog.csdnimg.cn/a3dfd960181241ecbdb40621b3f05514.png" alt="在这里插入图片描述"></p>
+<h4><a id="B__64"></a>B. 什么是系统调用接口？</h4>
+<p>操作系统作为系统软件，它的任务是<strong>为用户的应用程序提供良好的运行环境</strong>。因此，由操作系统内核提供一系列内核函数，通过一组称为系统调用的接口提供给用户使用。<strong>系统调用的作用是把应用程序的请求传递给系统内核，然后调用相应的内核函数完成所需的处理，最终将处理结果返回给应用程序</strong>。因此，<mark><strong>系统调用是应用程序和系统内核之间的接口</strong></mark>。</p>
+<p><img src="https://img-blog.csdnimg.cn/66c5a3c2bca9458eb22673757d50d6df.png" alt="在这里插入图片描述"></p>
+<h4><a id="C__69"></a>C. 为什么需要系统调用接口？</h4>
+<p><strong>操作系统提供的各种服务之所以需要通过系统调用来提供给用户程序的根本原因是<mark>对系统进行保护</mark></strong>。Linux运行空间分为内核空间与用户空间，它们各自运行在不同的级别上，逻辑上相互隔离。<strong><mark>用户进程通常情况下不允许访问内核数据，也无法使用内核函数</mark>，它们只能在用户空间操作用户数据，调用用户空间函数。</strong></p>
+<p><img src="https://img-blog.csdnimg.cn/40809746cddd4d00835407e13cc680c1.png" alt="在这里插入图片描述"></p>
+<h4><a id="D__74"></a>D. 什么是用户操作接口？为什么需要用户操作接口？</h4>
+<p><strong><mark>用户操作接口实际上是对系统调用接口的再封装</mark></strong>。由于系统调用接口需要用户对OS系统有一定对了解，对于用户来说使用成本较高；所以一些语言的发明者就对系统调用接口进行封装成库，供用户使用，<strong>大大降低了使用成本。</strong></p>
+<p>PS：我们写的代码都是通过用户操作接口在用户层上进行开发的。</p>
+<h1><a id="Linux_79"></a>三、Linux系统下的进程管理（初阶）</h1>
+<h2><a id="1_81"></a>1、什么是管理？</h2>
+<p>OS系统在管理被管理事物时，不是直接管理被管理事物的，因为被管理事物数量比较大的时候，直接管理的成本就会非常大；因<strong>此先将具体的被管理的事物对象抽象为一个个结构体（类）</strong>，把他描述起来，描述的过程就是面向对象抽象的过程；然后<strong>将大量的对象组织起来</strong>，组织的过程就是形成数据结构的过程。<strong><mark>于是OS系统对对象的管理就时对数据结构的管理</mark></strong>。</p>
+<h2><a id="2_OS_85"></a>2. OS系统如何管理硬件呢？</h2>
+<p>先描述，后组织；当硬件被接入点计算机（或者计算机启动）时。驱动就好帮助OS系统识别这些硬件，然后将硬件的信息交给OS系统，<strong>而OS系统就可以把这些信息描述（抽象成结构体）后组织（数据结构：数据的存储方式）起来</strong>；于是OS系统对硬件资源的管理就变成了对软件，数据，数据结构的相关管理工作。</p>
+<h2><a id="3__90"></a>3. 什么是进程？</h2>
+<p>在计算机中，存在着很多的可执行程序，<strong>而这些程序在电脑上运行起来，我们就将其称之为进程</strong>。简单来看，进程是已经启动的可执行程序的运行实例。从技术角度看，<mark><strong>计算机为了执行特定的指令，需要将该段程序加载到内存中，并调度CPU进行计算。</strong></mark></p>
+<ul>
+<li>程序是静态的代码文件</li>
+<li>进程是指程序运行时的形态</li>
+<li>进程是程序的另一个副本</li>
+<li>进程是有生命周期的（准备去，运行期，终止期）</li>
+<li><strong>担当分配系统资源（CPU时间，内存）的实体</strong></li>
+</ul>
+<h3><a id="1_99"></a>（1）进程与程序的区别</h3>
+<ul>
+<li><mark>程序</mark>：通常为二进程程序，放在存储媒介中（硬盘，光盘，磁带等等），以物理的形式存在。</li>
+<li><mark>进程</mark>：程序被触发后，执行者的权限和属性、程序的代码和所需的数据都会被加载到内存中，OS系统给予这个内存中的单元一个标识符（PID），可以说进程就是一个正在运行的程序。</li>
+</ul>
+<h3><a id="2_103"></a>（2）进程的组成</h3>
+<p>进程是一个独立的运行单位，也是操作系统进行资源分配和调度的基本单位，<strong><mark>它由以下三部分组成：PCB、程序段、数据段。</mark></strong></p>
+<p><img src="https://img-blog.csdnimg.cn/ebcc3dbd83724235bb667b3dc0f1bfa0.png" alt="在这里插入图片描述"></p>
+<h2><a id="4_PCB_108"></a>4. 描述进程的结构体（PCB）</h2>
+<p>为了<strong>描述控制进程的运行</strong>，<mark>系统中存放<strong>进程的管理和控制信息的数据结构称为进程控制块</strong>（PCB Process Control Block）</mark>，它是进程实体的一部分，是操作系统中最重要的记录性数据结构。它是进程管理和控制的最重要的数据结构，<strong>每一个进程均有一个PCB，在创建进程时，建立PCB，伴随进程运行的全过程，直到进程撤消而撤消。</strong></p>
+<h3><a id="1__111"></a>1. 如何理解创建进程和删除进程？</h3>
+<p><img src="https://img-blog.csdnimg.cn/13e24f3bb84e43ccba55fd88f30118a3.png" alt="在这里插入图片描述"></p>
+<h3><a id="2_task_struct__PCB_114"></a>2. task_struct - PCB的一种</h3>
+<p>在Linux中描述进程的结构体叫做task_struct。<br>
+task_struct是Linux内核的一种数据结构，它会被装载到RAM(内存)里并且包含着进程的信息。</p>
+<h3><a id="3__119"></a>3. 查看进程</h3>
+<h4><a id="1_121"></a>（1）在进程目录下查看进程信息</h4>
+<p>在home/proc/中查看进程信息</p>
+<p><img src="https://img-blog.csdnimg.cn/9286ed830c994c7092f7cd9a6ae21341.png" alt="在这里插入图片描述"></p>
+<p><img src="https://img-blog.csdnimg.cn/a5e74bf8677c45b1a222cbfb5d2ee0a3.png" alt="在这里插入图片描述"></p>
+<p>这里需要介绍一个信息：<strong><mark>cwd，进程工作目录</mark></strong>（进程可以知道自己的工作目录）。</p>
+<h4><a id="2PS_129"></a>（2）PS命令</h4>
+<p>对进程进行监测和控制,首先必须要了解当前进程的情况,也就是需要查看当前进程, 而ps命令（Process Status）就是最基本同时也是非常强大的进程查看命令.</p>
+<p>使用该命令 可以确定有哪些进程正在运行和运行的状态、进程是否结束、进程有没有僵尸、哪些进程占用了过多的资源等等.总之大部分信息都是可以通过执行该命令得到的.</p>
+<p><strong>ps 为我们提供了进程的一次性的查看，<mark>它所提供的查看结果并不动态连续的</mark>；如果想对进程时间监控，应该用 top 工具。</strong></p>
+<p><img src="https://img-blog.csdnimg.cn/7ca32f8dd4804a33a13fcd04be31d068.png" alt="在这里插入图片描述"></p>
+<p><strong><mark>ps aux得到的信息如下</mark>：</strong><br>
+<img src="https://img-blog.csdnimg.cn/eed6ce0843c946bbb926e55a34184b37.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/d2949577cbd040de83f302a4c17032df.png" alt="在这里插入图片描述"></p>
+<p><strong>USER</strong>  ：进程的用户；<br>
+<strong>PID</strong>   ：进程的ID；<br>
+<strong>%CPU</strong>   ：进程占用的CPU百分比；<br>
+<strong>%MEM</strong>  ：占用内存的百分比；<br>
+<strong>VSZ</strong>      ：该进程使用的虚拟内存量(KB)；<br>
+<strong>RSS</strong>     ：该进程占用的固定内存量(KB)；<br>
+<strong>TTY</strong>     ：该进程在哪个终端上运行(登陆者的终端位置)，若与终端无关，则显示(？)。若为pts/0等，则表示由网络连接主机进程；<br>
+<strong>START</strong>   ：该进程被触发启动时间；<br>
+<strong>TIME</strong>      ：该进程实际使用CPU运行的时间；<br>
+<strong>COMMAND</strong>  ：命令的名称和参数；</p>
+<h3><a id="4_task__struct_155"></a>4. task_ struct内容分类</h3>
+<ul>
+<li><strong><mark>标示符</mark>:</strong> 描述本进程的唯一标示符，用来区别其他进程。<br>
+<img src="https://img-blog.csdnimg.cn/7516a6f0cbaf46b2a2df67724bb5d7fb.png" alt="在这里插入图片描述"></li>
+<li><strong><mark>状态</mark></strong>: 任务状态，退出代码，退出信号等。<br>
+<img src="https://img-blog.csdnimg.cn/5496587eda15443cade8b7b73654cedb.png" alt="在这里插入图片描述"></li>
+</ul>
+<p>这里简单说明一下：<strong>S表示进程时睡眠状态，R表示进程正在运行；</strong><br>
+（1） 我第一次编写的程序时不断向显示器打印字符，为什么显示的是睡眠状态？<img src="https://img-blog.csdnimg.cn/70d0e23487bc47c3b7c1ad0a906facc5.png" alt="在这里插入图片描述"><br>
+（2）前台进程与后台进程简单介绍<br>
+<img src="https://img-blog.csdnimg.cn/9be8c890176c49c78b4dad40d7b2d69f.png" alt="在这里插入图片描述"></p>
+<ul>
+<li><strong><mark>优先级</mark></strong>: 表示获得CPU控制权的优先级大小。</li>
+<li><strong><mark>程序计数器</mark></strong>: 程序中即将被执行的下一条指令的地址。<br>
+<img src="https://img-blog.csdnimg.cn/dca3e2a06add4f54bd633758d2a0da26.png" alt="在这里插入图片描述"></li>
+<li><strong><mark>内存指针</mark></strong>: 包括程序代码和进程相关数据的指针（<strong>OS系统调度进程时可以通过PCB中内存指针找到对应的代码</strong>），还有和其他进程共享的内存块的指针。</li>
+<li><strong><mark>时间片</mark></strong><br>
+<img src="https://img-blog.csdnimg.cn/b64e6a1c9ab24230a834c6adcdc22316.png" alt="在这里插入图片描述"></li>
+<li><strong>上下文数据:</strong><br>
+<img src="https://img-blog.csdnimg.cn/9ba72ea867564b9cbfceefe94816e1e5.png" alt="在这里插入图片描述"></li>
+<li>记账信息: 可能包括处理器时间总和，使用的时钟数总和，时间限制，记账号等。</li>
+<li>其他信息</li>
+</ul>
+<h3><a id="5__177"></a>5. 进程管理初次总结</h3>
+<p><img src="https://img-blog.csdnimg.cn/472db24aec9f4643a4e5fdbe29deac44.png" alt="在这里插入图片描述"></p>
+<h2><a id="5__180"></a>5. 理解进程是如何被调度的</h2>
+<ol>
+<li>CPU内部只有一套寄存器，进行计算需要将内存中的数据拷贝到CPU内的寄存器中；寄存器中的数据是内存中数据的临时拷贝，保存着当前进程的中间数据，即上下文数据。</li>
+<li>进程被切换，可以在任意时间点（时间片到了+当前进程被抢占）；而下一个进程被调度的时候会把原来寄存器中的值覆盖，为了保存这个上下文数据，这个数据就被保存到进程控制块里面（不太准确，好理解）。</li>
+</ol>
+<h3><a id="1_184"></a>（1）为什么要保存上下文数据，为什么要恢复？</h3>
+<p><img src="https://img-blog.csdnimg.cn/4641127f466549038fcd38ef8bc99f0b.png" alt="在这里插入图片描述"></p>
+<h3><a id="2_188"></a>（2）进程调度总结</h3>
+<p><img src="https://img-blog.csdnimg.cn/a1cdc2e61a1b49e3987959fd8e723fbc.png" alt="在这里插入图片描述"></p>
+<hr>
+<h1><a id="Linux_193"></a>四、Linux进程进阶</h1>
+<h2><a id="1_fork_195"></a>1. 通过系统调用（fork）创建进程</h2>
+<ol>
+<li>fork()可用于创建一个新的进程，更确切的说，它主要是用于在父进程中创建一个子进程，当调用此函数时，操作系统会为子进程<strong>分配其自己的PCB，进程地址空间、寄存器、PC等</strong>；<strong><mark>子进程与父进程代码共享，数据各自开辟空间，私有一份（采用写时拷贝）</mark></strong>。</li>
+<li>但是执行不是从main函数开始，而是<strong>从fork()被调用的那行代码开始执行。</strong></li>
+<li><strong>fork()会返回两次</strong>，<strong>分别返回子进程id和0</strong>；因为父进程和子进程分别返回了一个值，父进程中fork()的返回值为子进程的PID，而子进程中fork()的返回值为0。</li>
+</ol>
+<p><img src="https://img-blog.csdnimg.cn/9bdf20b711bb4d97b0c97185ca6c146f.png" alt="在这里插入图片描述"></p>
+<h2><a id="2__203"></a>2. 操作系统的进程状态</h2>
+<h3><a id="1_204"></a>（1）三种基本状态</h3>
+<p>1、<strong>运行态</strong>：进程占有CPU，并在CPU上运行<br>
+2、<strong>就绪态</strong>：已经具备运行条件，但因无空闲CPU暂时不能运行。<br>
+3、<strong>阻塞态</strong>（又称<strong>等待态</strong>，封锁态，睡眠态）：等待某一事件暂时不能运行</p>
+<p><img src="https://img-blog.csdnimg.cn/2970679ef6374f99a53aa36b6762de88.png" alt="在这里插入图片描述"><br>
+<strong>1、<mark>运行-&gt;就绪</mark>：运行中的进程用完了时间片，一个高优先级的进入就绪状态，抢占正在运行的进程。<br>
+2、<mark>就绪-&gt;运行</mark>：处于就绪状态的进程被操作系统的进程调度器选中后，就分配给 CPU 正式运行该进程；<br>
+3、<mark>运行-&gt;阻塞</mark>：当一个进程等待某个事件发生时，例如请求OS服务，访问某资源尚不能进行，等待IO结果，等待另一进程提供信息等<br>
+4、<mark>等待-&gt;就绪</mark>：所等待的事情发生了</strong></p>
+<p><img src="https://img-blog.csdnimg.cn/a626f0a12d2e486b80d0b050c64b05f5.png" alt="在这里插入图片描述"></p>
+<h3><a id="2_217"></a>（2）进程的其他状态</h3>
+<p>创建，挂起，终止<br>
+1、<mark><strong>创建态</strong></mark>：已完成创建一个进程必要的工作，如分配PID，填充PCB，但未同意执行该进程<br>
+2、<mark><strong>终止态</strong></mark>：终止执行后，进程进入终止状态，操作系统会完成一些数据统计工作，然后进行资源回收。<br>
+3、<mark><strong>挂起态</strong></mark>：它表示进程没有占有内存空间。这跟阻塞状态是不一样，阻塞状态是等待某个事件的返回。<strong>挂起状态是由于用于调度负载时，进程较多而内存资源较少时，操作系统将一些进程置为挂起状态，进程的所使用的空间可能并没有映射到物理内存，而是在硬盘上，这时进程就会出现挂起状态。</strong></p>
+<ul>
+<li>挂起状态可以分为两种：<br>
+<strong>阻塞挂起状态</strong>：进程在外存（硬盘）并等待某个事件的出现；<br>
+<strong>就绪挂起状态</strong>：进程在外存（硬盘），但只要进入内存，即刻立刻运行；</li>
+</ul>
+<p><img src="https://img-blog.csdnimg.cn/c925707adc3745f3a7bd10f39004c558.png" alt="在这里插入图片描述"></p>
+<ol>
+<li><strong><mark>阻塞状态-&gt;阻塞挂起状态</mark></strong>：当内存空间比较紧缺的时候，如果有存在在内存中的，而且是处于阻塞状态的进程，那么就<strong>让他更需要内存的程序占用内存，自己进入阻塞挂起状态，PCB等数据存入外存</strong>。因为现在这个进程也不能进入就绪状态，这个程序在内存中是没有什么作用的。</li>
+<li><strong><mark>阻塞挂起状态-&gt;就绪挂起状态</mark></strong>：当阻塞状态等待的IO事件或其他事件到来的时候状态发生改变。</li>
+<li><strong><mark>就绪挂起状态-&gt;就绪状态</mark></strong>：如果内存中<strong>没有就绪态进程，操作系统需要调入一个进程继续执行</strong>。此外，当处于就绪/挂起状态的进程比处于就绪态的任何进程的优先级都要高时，也可以进行这种转换。这种情况的产生是由于操作系统设计者规定，调入高优先级的进程比减少交换量更重要。</li>
+<li><strong><mark>就绪状态-&gt;就绪挂起状态</mark></strong>：通常，操作系统更倾向于挂起阻塞态进程而不是就绪态进程，因为就绪态进程可以立即执行，而阻塞态进程占用了内存空间但不能执行。但如果释放内存以得到足够空间的唯一方法是挂起一个就绪态进程，那么这种转换也是必需的。并且，如果操作系统确信高优先级的阻塞态进程很快就会就绪，那么它可能选择挂起一个低优先级的就绪态进程，而不是一个高优先级的阻塞态进程。</li>
+</ol>
+<h2><a id="3_linux_236"></a>3. linux系统下的进程状态</h2>
+<p>为了弄明白正在运行的进程是什么意思，我们需要知道进程的不同状态。一个进程可以有几个状态（在Linux内核里，进程有时候也叫做任务）。<br>
+下面的状态在kernel源代码里定义：</p>
+<pre><code class="prism language-c"><span class="token comment">/*
+* The task state array is a strange "bitmap" of
+* reasons to sleep. Thus "running" is zero, and
+* you can test for combinations of others with
+* simple bit tests.
+*/</span>
+<span class="token keyword">static</span> <span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span> <span class="token keyword">const</span> task_state_array<span class="token punctuation">[</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+<span class="token string">"R (running)"</span><span class="token punctuation">,</span> <span class="token comment">/* 0 */</span>
+<span class="token string">"S (sleeping)"</span><span class="token punctuation">,</span> <span class="token comment">/* 1 */</span>
+<span class="token string">"D (disk sleep)"</span><span class="token punctuation">,</span> <span class="token comment">/* 2 */</span>
+<span class="token string">"T (stopped)"</span><span class="token punctuation">,</span> <span class="token comment">/* 4 */</span>
+<span class="token string">"t (tracing stop)"</span><span class="token punctuation">,</span> <span class="token comment">/* 8 */</span>
+<span class="token string">"X (dead)"</span><span class="token punctuation">,</span> <span class="token comment">/* 16 */</span>
+<span class="token string">"Z (zombie)"</span><span class="token punctuation">,</span> <span class="token comment">/* 32 */</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+</code></pre>
+<blockquote>
+<ol>
+<li>R运行状态（running）: 并不意味着进程一定在运行中，它表明进程要么是在运行中要么在运行队列里。</li>
+<li>S睡眠状态（sleeping): 意味着进程在等待事件完成（这里的睡眠有时候也叫做可中断睡眠（interruptible sleep））。</li>
+<li>D磁盘休眠状态（Disk sleep）有时候也叫不可中断睡眠状态（uninterruptible sleep），在这个状态的进程通常会等待IO的结束。（阻塞）</li>
+<li>T停止状态（stopped）： 可以通过发送 SIGSTOP 信号给进程来停止（T）进程。这个被暂停的进程可以通过发送 SIGCONT 信号让进程继续运行。</li>
+<li>X死亡状态（dead）：这个状态只是一个返回状态，你不会在任务列表里看到这个状态。</li>
+</ol>
+</blockquote>
+<h3><a id="1R_TASK_RUNNING_263"></a>（1）R (TASK_RUNNING)，可执行状态。</h3>
+<p>只有在该状态的进程才可能在CPU上运行。<strong><mark>而同一时刻可能有多个进程处于可执行状态，这些进程的task_struct结构（进程控制块）被放入对应CPU的可执行队列中</mark></strong>（一个进程最多只能出现在一个CPU的可执行队列中）。进程调度器的任务就是从各个CPU的可执行队列中分别选择一个进程在该CPU上运行。</p>
+<p><img src="https://img-blog.csdnimg.cn/7dca547203e841b5a81e2fc8f3c0e25f.png" alt="在这里插入图片描述"></p>
+<p>很多操作系统教科书将正在CPU上执行的进程定义为<strong>运行（RUNNING）状态</strong>、而将可执行但是尚未被调度执行的进程定义为<strong>就绪（READY）状态</strong>，<strong>这两种状态在linux下统一TASK_RUNNING状态。</strong></p>
+<h3><a id="2S_TASK_INTERRUPTIBLE_271"></a>（2）S (TASK_INTERRUPTIBLE)，可中断的睡眠状态。</h3>
+<p><img src="https://img-blog.csdnimg.cn/ebcabcd22e424e3d80218b4cabb093f1.png" alt="在这里插入图片描述"></p>
+<p><img src="https://img-blog.csdnimg.cn/9321872a1093401686a8c1288c68414d.png" alt="在这里插入图片描述"></p>
+<p>处于这个状态的进程因为等待某某事件的发生（比如等待socket连接、等待信号量），而被挂起。这些进程的task_struct结构被放入对应事件的等待队列中。当这些事件发生时（由外部中断触发、或由其他进程触发），对应的等待队列中的一个或多个进程将被唤醒。</p>
+<p>通过ps命令我们会看到，一般情况下，进程列表中的绝大多数进程都处于TASK_INTERRUPTIBLE状态（除非机器的负载很高）。毕竟CPU就这么一两个，进程动辄几十上百个，如果不是绝大多数进程都在睡眠，CPU又怎么响应得过来。</p>
+<h3><a id="3_DTASK_UNINTERRUPTIBLE_282"></a>（3） D（TASK_UNINTERRUPTIBLE），不可中断状态</h3>
+<p>处于等待中的进程，待资源满足时被唤醒，但不可以由其它进程通过信号或中断唤醒。由于不接受外来的任何信号，<strong>因此无法用kill杀掉这些处于该状态的进程</strong>.于是我们也很好理解，为什么ps命令看到的进程几乎不会出现TASK_UNINTERRUPTIBLE状态，而总是TASK_INTERRUPTIBLE状态。</p>
+<p><img src="https://img-blog.csdnimg.cn/81fd0afbc27141c89aab0e4afc33c34e.png" alt="在这里插入图片描述"></p>
+<h3><a id="4Z_TASK_DEAD__EXIT_ZOMBIE_287"></a>（4）Z (TASK_DEAD – EXIT_ZOMBIE)，退出状态，进程成为僵尸进程。</h3>
+<p>进程在退出的过程中，处于TASK_DEAD状态。</p>
+<ul>
+<li>基础概念：在这个退出过程中，进程占有的所有资源将被回收，除了task_struct结构（以及少数资源）以外。<strong>之所以保留task_struct，是因为task_struct里面保存了进程的退出码、以及一些统计信息。而其父进程很可能会关心这些信息</strong>。比如在shell中，$?变量就保存了最后一个退出的前台进程的退出码，而这个退出码往往被作为if语句的判断条件。</li>
+<li>产生原因<img src="https://img-blog.csdnimg.cn/a9d616abc5e14109a67eeeb30178433e.png" alt="在这里插入图片描述"></li>
+<li>解决方法（后面解释）：<strong>父进程可以通过wait系列的系统调用（如wait4、waitid）来等待某个或某些子进程的退出，并获取它的退出信息。然后wait系列的系统调用会顺便将子进程的尸体（task_struct）也释放掉。</strong><br>
+子进程在退出的过程中，内核会给其父进程发送一个信号，通知父进程来“收尸”。这个信号默认是SIGCHLD，但是在通过clone系统调用创建子进程时，可以设置这个信号。</li>
+<li>下面的代码会创建一个僵尸进程</li>
+</ul>
+<p><img src="https://img-blog.csdnimg.cn/3805b168d9ff4cc1825804ecc0ec407f.png" alt="在这里插入图片描述"><br>
+这个程序的父进程一直在运行，但是子进程在5秒后退出，当子进程退出后，父进程不会对子进程的退出状态进行询问，所以此时子进程需要一直维护一种状态，叫做僵尸状态。</p>
+<p><img src="https://img-blog.csdnimg.cn/818732fcd6dc44349e73abcc5df04a8b.png" alt="在这里插入图片描述"></p>
+<ul>
+<li><strong>总结：</strong><br>
+<img src="https://img-blog.csdnimg.cn/f30d40c389e7492b89de22564b015589.png" alt="在这里插入图片描述"><br>
+<strong>僵尸进程危害总结</strong></li>
+</ul>
+<ol>
+<li>进程的退出状态必须被维持下去，因为他要告诉关心它的进程（父进程），你交给我的任务，我办的怎么样了。可父进程如果一直不读取，那子进程就一直处于Z状态？是的！</li>
+<li>维护退出状态本身就是要用数据维护，也属于进程基本信息，所以保存在task_struct(PCB)中，换句话说，Z状态一直不退出，PCB一直都要维护？是的！</li>
+<li>那一个父进程创建了很多子进程，就是不回收，是不是就会造成内存资源的浪费？是的！因为数据结构对象本身就要占用内存，想想C中定义一个结构体变量（对象），是要在内存的某个位置进行开辟空间！</li>
+<li>内存泄漏?是的！</li>
+</ol>
+<h3><a id="5_310"></a>（5）特殊的进程状态，孤儿进程</h3>
+<p>刚刚所讲的僵尸进程是子进程退出而父进程暂时没有退出的情况， 只要父进程不退出，这个僵尸状态的子进程就一直存在。<strong>那么如果父进程退出了呢，谁又来给子进程“收尸”？</strong></p>
+<p><strong>父进程运行结束，但是子进程还在运行的子进程就称为孤儿进程。</strong></p>
+<p><strong>当进程退出的时候，会将它的所有子进程都托管给别的进程</strong>（使之成为别的进程的子进程）。托管给谁呢？可能是退出进程所在进程组的下一个进程（如果存在的话），或者是1号进程。所以每个进程、每时每刻都有父进程存在。除非它是1号进程。</p>
+<p><strong>1号进程，pid为1的进程，又称init进程。</strong><br>
+linux系统启动后，第一个被创建的用户态进程就是init进程。它有两项使命：<br>
+1、执行系统初始化脚本，创建一系列的进程（它们都是init进程的子孙）；<br>
+2、在一个死循环中等待其子进程的退出事件（），并调用waitid系统调用来完成“收尸”工作；init进程不会被暂停、也不会被杀死（这是由内核来保证的）。它在等待子进程退出的过程中处于TASK_INTERRUPTIBLE状态，“收尸”过程中则处于TASK_RUNNING状态。</p>
+<p><img src="https://img-blog.csdnimg.cn/86ab046767b34854b8b7da34521f0770.png" alt="在这里插入图片描述"></p>
+<h2><a id="4__324"></a>4. 进程的优先级</h2>
+<h3><a id="1_325"></a>（1）优先级基本概念</h3>
+<ol>
+<li>cpu资源分配的先后顺序，就是指进程的优先权（priority）。</li>
+<li>优先权高的进程有优先执行权利。配置进程优先权对多任务环境的linux很有用，可以改善系统性能。</li>
+<li>还可以把进程运行到指定的CPU上，这样一来，把不重要的进程安排到某个CPU，一个进程始终在一个CPU上时那么一些缓存数据不需要一直切换，可以大大改善系统整体性能。</li>
+</ol>
+<h3><a id="2_329"></a>（2）为什么需要优先级</h3>
+<p>在系统中一定有多个进程，但是可能只有一个单核CPU，所以CPU去执行进程时。也可以看作进程争取CPU；即资源有限但是使用着多；所以OS调度器必须通过特定的方式来指定CPU被哪个进程使用，就一定会有先后问题。</p>
+<h3><a id="3_332"></a>（3）查看，修改优先级</h3>
+<h4><a id="A__334"></a>A. 查看优先级</h4>
+<p><img src="https://img-blog.csdnimg.cn/7aec4ba927bb4e4b9d9daf4582e404b4.png" alt="在这里插入图片描述"></p>
+<ol>
+<li>UID : 代表执行者的身份</li>
+<li>PID : 代表这个进程的代号</li>
+<li>PPID ：代表这个进程是由哪个进程发展衍生而来的，亦即父进程的代号</li>
+<li><strong><mark>PRI</mark> ：代表这个进程可被执行的优先级，其值越小越早被执行</strong></li>
+<li><strong><mark>NI</mark> ：代表这个进程的nice值</strong></li>
+</ol>
+<p><img src="https://img-blog.csdnimg.cn/ef01f2fafe514e5f808b584bcef5fcc2.png" alt="在这里插入图片描述"></p>
+<h4><a id="B_PRI__NI_346"></a>B. PRI 和 NI</h4>
+<ul>
+<li>PRI也还是比较好理解的，即进程的优先级，或者通俗点说就是程序被CPU执行的先后顺序，<strong>此值越小进程的优先级别越高</strong></li>
+<li>那NI呢?就是我们所要说的nice值了，其表示进程可被执行的优先级的修正数值</li>
+<li>PRI值越小越快被执行，那么加入nice值后，将会使得PRI变为：<strong><mark>PRI(new)=80+nice</mark></strong></li>
+<li>这样，当nice值为负值的时候，那么该程序将会优先级值将变小，即其优先级会变高，则其越快被执行所以，<strong>调整进程优先级，在Linux下，就是调整进程nice值</strong></li>
+<li><strong>nice其取值范围是-20至19</strong>，一共40个级别。</li>
+</ul>
+<h4><a id="C___top_353"></a>C. 查看优先级的命令 - top</h4>
+<ul>
+<li>top</li>
+<li>进入top后按“r”–&gt;输入进程PID–&gt;输入nice值</li>
+</ul>
+<p><img src="https://img-blog.csdnimg.cn/f1de4ccff81f4e5daf3945fc9a88b605.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/589eac67cb9a4994a72384adbbdaeaac.png" alt="在这里插入图片描述"></p>
+<p>如果设置的NI值超出了范围，NI值会是范围内最接近设置值的那个值。</p>
+<p>也可以使用系统调用接口修改NI值：<br>
+renice -n 【进程PID】【新NI值】</p>
+<h2><a id="5__366"></a>5. 其他概念（了解）</h2>
+<ul>
+<li>竞争性: 系统进程数目众多，而CPU资源只有少量，甚至1个，所以进程之间是具有竞争属性的。为了高效完成任务，更合理竞争相关资源，便具有了优先级</li>
+<li>独立性: 多进程运行，需要独享各种资源，多进程运行期间互不干扰</li>
+<li>并行: 多个进程在多个CPU下分别，同时进行运行，这称之为并行</li>
+<li>并发: 多个进程在一个CPU下采用进程切换的方式，在一段时间之内，让多个进程都得以推进，称之为并发</li>
+</ul>
+<h1><a id="_374"></a>五、环境变量</h1>
+<h2><a id="1__376"></a>1. 基本概念</h2>
+<ul>
+<li>环境变量(environment variables)一般是指在操作系统中用来指定操作系统运行环境的一些参数</li>
+<li>如：我们在编写C/C++代码的时候，在链接的时候，从来不知道我们的所链接的动态静态库在哪里，但是照样可以链接成功，生成可执行程序，原因就是有相关环境变量帮助编译器进行查找。</li>
+<li>环境变量通常具有某些特殊用途，还有在系统当中通常具有全局特性</li>
+</ul>
+<h2><a id="2__381"></a>2. 常见环境变量</h2>
+<ul>
+<li><strong><mark>PATH</mark></strong>：指定命令的搜索路径</li>
+<li><strong><mark>HOME</mark></strong>:指定用户的主工作目录(即用户登陆到Linux系统中时,默认的目录)</li>
+<li><strong><mark>SHELL</mark></strong>:当前Shell,它的值通常是/bin/bash。</li>
+</ul>
+<p><strong>通过【echo $NAME //NAME:你的环境变量名称】查看环境变量</strong></p>
+<h2><a id="3_PATH_389"></a>3. 理解环境变量PATH</h2>
+<p><img src="https://img-blog.csdnimg.cn/1167197ee09644bf8ab042c10406be43.png" alt="在这里插入图片描述"><img src="https://img-blog.csdnimg.cn/5f322e07c7ab45bfa2643161121f24c6.png" alt="在这里插入图片描述"></p>
+<p><img src="https://img-blog.csdnimg.cn/015df05abdfa4c568d226318ae975aae.png" alt="在这里插入图片描述"></p>
+<h2><a id="4_HOME_396"></a>4. 环境变量HOME</h2>
+<p>任何用户在进行登陆的时候都有一个自己所处的工作目录，二登陆进来的这个工作目录就被些在$HOME中：即HOME这个环境变量就保存了当前用户所处的工作目录。</p>
+<p><img src="https://img-blog.csdnimg.cn/b2a7393d7cd14a81a0e411684e317063.png" alt="在这里插入图片描述"></p>
+<p><img src="https://img-blog.csdnimg.cn/caea6b92da60435ca5a0119bd5a2ab00.png" alt="在这里插入图片描述"></p>
+<h2><a id="5_SHELL_405"></a>5. 环境变量SHELL</h2>
+<p>命令行解释器种类有许多：bash，sh<br>
+我么可以通过【echo $SHELL】查看当前所使用的命令行解释器。</p>
+<p><img src="https://img-blog.csdnimg.cn/09b1e4f104804d4f9e2b7bda78d0a636.png" alt="在这里插入图片描述"></p>
+<p>这个bash实际上是一条命令，这条命令跑起来后就会对我进行命令行解释。</p>
+<h2><a id="6__414"></a>6. 环境变量相关的命令</h2>
+<ol>
+<li><strong><mark>echo</mark></strong>:显示某个环境变量值</li>
+<li><strong><mark>export</mark></strong>:设置一个新的环境变量</li>
+<li><strong><mark>env</mark></strong>:显示所有环境变量</li>
+<li><strong><mark>unset</mark></strong>:清除环境变量</li>
+<li><strong><mark>set</mark></strong>:显示本地定义的shell变量和环境变量</li>
+</ol>
+<h3><a id="1env_422"></a>(1)env命令</h3>
+<p><img src="https://img-blog.csdnimg.cn/bc36474e16364e9b81f06670209a7de6.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/3fa49847f3f5490c8662d297207ee147.png" alt="在这里插入图片描述"></p>
+<p><strong>关于终端设备的一个操作：</strong></p>
+<p><strong>打开俩个不同的终端</strong><br>
+<img src="https://img-blog.csdnimg.cn/a82c8beb87124e37a99a17c0ee7dc6b6.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/d22904290fc54fafadd4fc18563da2d2.png" alt="在这里插入图片描述"></p>
+<h3><a id="2setunset_434"></a>(2)set和unset命令</h3>
+<p><img src="https://img-blog.csdnimg.cn/dea3c8cdcbf349ee8d2cc5cb45d20f7a.png" alt="在这里插入图片描述"></p>
+<p>我们使用MYVAL = 100这样的命令后使用env看不到这个变量，使用set才可以看到；这种变量叫做本地变量。</p>
+<p>我们也可以使用【<strong>echo $MYVAL</strong>】来得到本地变量的值</p>
+<p><img src="https://img-blog.csdnimg.cn/ff3a563e1b3642b0afd6f7e528d6b4fd.png" alt="在这里插入图片描述"></p>
+<p>使用【export MYVAL】将本地变量变为环境变量，环境变量可以被其他进程获取到；而使用【unset MYVAL】可以取消这个环境变量。</p>
+<h2><a id="7__447"></a>7. 本地变量和环境变量（小结）</h2>
+<p>每一种编程语言中，我们都会碰到变量的作用域的问题。（比如在函数中定义的变量在函数外不能使用的)<br>
+BASH 中也有类似的问题，局部变量和环境变量（全局变量）。<br>
+<strong><mark>局部变量是普通的变量，仅在创建它的Shell中有效</mark>。</strong><br>
+环境变量。我们更多的使用“环境变量”而不是“全局变量”，因为这个名称更 能体现它的特点。<strong><mark>环境变量对创建它的Shell及其派生出来的子进程都有效</mark></strong>。或者说环境变量可以继承，但它对其它与创建它的Shell没有关系的Shell并不可见。其实重启一个终端就是重新启动了一个shell 。</p>
+<p><strong>Linux的变量可分为两类：环境变量和本地变量</strong></p>
+<ul>
+<li><strong><mark>环境变量</mark></strong>，或者称为全局变量，存在与所有的shell中，在你登陆系统的时候就已经有了相应的系统定义的环境变量了。Linux的环境变量具有继承性，即子shell会继承父shell的环境变量。<br>
+<strong>#env 显示环境变量</strong></li>
+<li><strong><mark>本地变量</mark></strong>，当前shell中的变量，很显然本地变量中肯定包含环境变量。Linux的本地变量的非环境变量不具备继承性，<strong>只可以在当前shell中使用。</strong><br>
+<strong>#set显示本地变量，Linux中环境变量的文件</strong></li>
+</ul>
+<p>当你进入系统的时候，linux就会为你读入系统的环境变量，这些环境变量存放在什么地方，那就是环境变量的文件中。<strong>Linux中有很多记载环境变量的文件，它们被系统读入是按照一定的顺序的</strong>。</p>
+<h2><a id="8__463"></a>8. 命令行参数和环境变量的组织方式</h2>
+<h3><a id="1_465"></a>（1）命令行参数的组织方式</h3>
+<p>要想知道命令行参数的组织方式，我们需要先了解一下main()函数的参数。</p>
+<pre><code class="prism language-c"><span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc <span class="token keyword">char</span><span class="token operator">*</span> argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span><span class="token keyword">char</span><span class="token operator">*</span> envp<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+     <span class="token comment">//、、、、</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p><strong>其实main函数有三个参数：</strong></p>
+<ol>
+<li>第一个参数：argc是个整型变量，表示<strong>命令行参数的个数</strong>（含第一个参数）。</li>
+<li>第二个参数：argv是个字符指针的数组，每一个元素一个字符指针，指向一个字符串。这些<strong>字符串就是命令行中的每一个参数</strong>（字符串）。</li>
+<li>第三个参数：envp是字符指针的数组，数组的<strong>每一个原元素是一个指向一个环境变量（字符串）的字符指针。</strong></li>
+</ol>
+<p>下面看一段在Linux环境下运行的代码：</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+ 
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span><span class="token operator">*</span> argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span><span class="token keyword">char</span><span class="token operator">*</span> envp<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">int</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token keyword">for</span><span class="token punctuation">(</span>i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> argc<span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+      <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"argv[%d]: %s\n"</span><span class="token punctuation">,</span>i<span class="token punctuation">,</span>argv<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>    
+</code></pre>
+<p>运行结果如下：</p>
+<p><img src="https://img-blog.csdnimg.cn/2e8a965add5f4dc08682d9643e95d95a.png" alt="在这里插入图片描述"></p>
+<p>由上所示的结果我们可以看到，当我们在命令行<strong>输入 ./myproc -a -b -c时</strong>，程序会将我们刚刚在命令行输入的结果全部打印出来，需要注意的是 <strong>./myproc也是一个参数，并且是第一个参数。</strong><br>
+<strong>注：argv数组的最后一个元素存放了一个NULL的指针。</strong></p>
+<h3><a id="2_504"></a>（2）环境变量的组织方式</h3>
+<p><strong><mark>main()函数的第三个参数</mark></strong>：envp是字符指针的数组，数组的<strong>每一个原元素是一个指向一个环境变量（字符串）的字符指针。</strong><br>
+<img src="https://img-blog.csdnimg.cn/bbdd7dfe851b436abce1eb03f40e31f7.png" alt="在这里插入图片描述"></p>
+<p>运行结果如下：</p>
+<p><img src="https://img-blog.csdnimg.cn/3173d708d63341a883c232d0f0f9eb06.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/ac483474e6b04567be2754883f50d328.png" alt="在这里插入图片描述"></p>
+<p>这样的结果与使用env所获得的环境变量相同，于是可以知道环境变量的组织方式：<br>
+<img src="https://img-blog.csdnimg.cn/caed3208f5a848b98c55fe6f121d97bd.png" alt="在这里插入图片描述"><br>
+<strong><mark>每个程序都会收到一张环境表</mark>，环境表是一个字符指针数组，每个指针指向一个以’\0’结尾的环境字符串</strong></p>
+<h2><a id="9__519"></a>9. 通过代码获取环境变量的三种方式</h2>
+<ul>
+<li>命令行第三个参数</li>
+</ul>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>env<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">int</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+	<span class="token keyword">for</span><span class="token punctuation">(</span><span class="token punctuation">;</span> env<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span>
+	<span class="token punctuation">{</span>
+		<span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s\n"</span><span class="token punctuation">,</span> env<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+ 	<span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<ul>
+<li>通过第三方参数</li>
+</ul>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">extern</span> <span class="token keyword">char</span> <span class="token operator">*</span><span class="token operator">*</span>environ<span class="token punctuation">;</span>
+	<span class="token keyword">int</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+	<span class="token keyword">for</span><span class="token punctuation">(</span><span class="token punctuation">;</span> environ<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span>
+	<span class="token punctuation">{</span>
+		<span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s\n"</span><span class="token punctuation">,</span> environ<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+	<span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<ul>
+<li>通过系统调用获取环境变量</li>
+</ul>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+ 		<span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s\n"</span><span class="token punctuation">,</span> <span class="token function">getenv</span><span class="token punctuation">(</span><span class="token string">"PATH"</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+		<span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p><img src="https://img-blog.csdnimg.cn/67032575981f445e85e312ae5b151eea.png" alt="在这里插入图片描述"></p>
+<hr>
+<h1><a id="_568"></a>六、进程地址空间</h1>
+<p><img src="https://img-blog.csdnimg.cn/bc59119375624a148252eeec05928b9f.png" alt=""></p>
+<p>我们在学习C语言期间，经常可以提及到这些区域，有一个问题：这里的地址空间是内存吗？答案是这里的地址空间并不是内存。这里的地址空间是进程地址空间，下面我们就讲解进程地址空间。</p>
+<p>这段空间中自下而上，地址是增长的，栈是向地址减小方向增长(栈是先使用高地址)，而堆是向地址增长方向增长(堆是先使用低地址)，堆栈之间的共享区，主要用来加载动态库。</p>
+<h2><a id="1__577"></a>1. 验证虚拟地址的存在</h2>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+
+<span class="token keyword">int</span> g_val <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token class-name">pid_t</span> id <span class="token operator">=</span> <span class="token function">fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token keyword">if</span><span class="token punctuation">(</span>id <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span>
+	<span class="token punctuation">{</span>
+		<span class="token function">perror</span><span class="token punctuation">(</span><span class="token string">"fork"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+		<span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span><span class="token keyword">else</span> <span class="token keyword">if</span><span class="token punctuation">(</span>id <span class="token operator">==</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">{</span> <span class="token comment">//child,子进程肯定先跑完，也就是子进程先修改，完成之后，父进程再读取</span>
+		g_val<span class="token operator">=</span><span class="token number">100</span><span class="token punctuation">;</span>
+		<span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"child[%d]: %d : %p\n"</span><span class="token punctuation">,</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> g_val<span class="token punctuation">,</span> <span class="token operator">&amp;</span>g_val<span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span><span class="token keyword">else</span>
+	<span class="token punctuation">{</span> <span class="token comment">//parent</span>
+		<span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+		<span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"parent[%d]: %d : %p\n"</span><span class="token punctuation">,</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> g_val<span class="token punctuation">,</span> <span class="token operator">&amp;</span>g_val<span class="token punctuation">)</span><span class="token punctuation">;</span>
+ 	<span class="token punctuation">}</span>
+	<span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>输出结果如下：</p>
+<blockquote>
+<p>//与环境相关，观察现象即可<br>
+child[3046]: 100 : 0x80497e8<br>
+parent[3045]: 0 : 0x80497e8</p>
+</blockquote>
+<p>我们发现，父子进程，输出地址是一致的，但是变量内容不一样！能得出如下结论:</p>
+<ol>
+<li>变量内容不一样,所以父子进程输出的变量绝对不是同一个变量，但地址值是一样的，说明该地址绝对不是物理地址！</li>
+<li>在Linux地址下，这种地址叫做 虚拟地址。</li>
+<li>我们在用C/C++语言所看到的地址，全部都是虚拟地址！物理地址，用户一概看不到，由OS统一管理。</li>
+<li><strong>OS必须负责将 虚拟地址 转化成 物理地址 。</strong></li>
+</ol>
+<h2><a id="2__617"></a>2. 什么是进程地址空间？</h2>
+<p>在Linux内核中，有这样一个结构体：struct mm_struct，在这个结构体去表示我们开始说的一个一个的区域呢？这样去表示：</p>
+<pre><code class="prism language-c"><span class="token keyword">struct</span> <span class="token class-name">mm_struct</span>
+<span class="token punctuation">{</span>
+    <span class="token keyword">unsigned</span> <span class="token keyword">long</span> code_start<span class="token punctuation">;</span><span class="token comment">//代码区</span>
+    <span class="token keyword">unsigned</span> <span class="token keyword">long</span> code_end<span class="token punctuation">;</span>
+    
+    <span class="token keyword">unsigned</span> <span class="token keyword">long</span> init_start<span class="token punctuation">;</span><span class="token comment">//初始化区</span>
+    <span class="token keyword">unsigned</span> <span class="token keyword">long</span> init_end<span class="token punctuation">;</span>
+    
+    <span class="token keyword">unsigned</span> <span class="token keyword">long</span> uninit_start<span class="token punctuation">;</span><span class="token comment">//未初始化区</span>
+    <span class="token keyword">unsigned</span> <span class="token keyword">long</span> uninit_end<span class="token punctuation">;</span>
+    
+    <span class="token keyword">unsigned</span> <span class="token keyword">long</span> heap_start<span class="token punctuation">;</span><span class="token comment">//堆区</span>
+    <span class="token keyword">unsigned</span> <span class="token keyword">long</span> heap_end<span class="token punctuation">;</span>
+    
+    <span class="token keyword">unsigned</span> <span class="token keyword">long</span> stack_start<span class="token punctuation">;</span><span class="token comment">//栈区</span>
+    <span class="token keyword">unsigned</span> <span class="token keyword">long</span> stack_end<span class="token punctuation">;</span>
+    <span class="token comment">//...等等</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>里面存放的内容可以认为是该进程对内存进行划分的各个区域的起始地址和结束地址，并且都是以4G的空间划分的。而OS里可能会有多个进程，不可能让一个进程独享所有的内存资源，所以进程的地址空间中的地址就是虚拟地址。</p>
+<p>每个进程都有自己的进程地址空间，所以每个进程都有一个mm_struct结构体，task_struct中存在指向这个结构体的指针。</p>
+<p><strong><mark>进程地址空间本质是进程看待内存的方式</mark></strong>，抽象出来的一个概念，内核：struct mm_struct，这样的每个进程，都认为自己独占系统内存资源，地址空间区域划分本质：将线性地址空间划分成为一个一个的area，[start,end]。<strong>虚拟地址本质，在[start,end]之间的各个地址叫做虚拟地址。</strong></p>
+<h3><a id="1_646"></a>（1）如何理解区域扩大？</h3>
+<p><img src="https://img-blog.csdnimg.cn/ce30ae4b085445a5985f241be309c1ae.png" alt="在这里插入图片描述"></p>
+<p>但是所有的代码数据都是要存放在物理内存上的，虚拟地址只是一种对物理空间划分的方法，<strong>虚拟地址是如何与物理地址建立联系的</strong>？</p>
+<h2><a id="3__651"></a>3. 页表</h2>
+<p>程序要运行，就要被加载到内存中，而系统中可能会存在多个进程同时运行的情况，所以让一个进程独享所以的内存资源是不可能的，地址空间又是按照其独享资源的方式划分并且分配的，并没有考虑到和其他进程共用内存的情况，所以如果直接使用地址空间中的地址，那么就可能出现不同进程之间使用地址发生冲突的情况。所以在把进程加载到内存时，就需要<strong>把进程中的虚拟地址以某种方法映射到真实的物理内存地址中。</strong></p>
+<blockquote>
+<p>我们把虚拟地址转换成物理地址是通过页表和MMU完成的。<br>
+页表：本质是一种映射表，把虚拟地址映射到物理地址上。<br>
+MMU：内存管理单元，是一个硬件，被集成在CPU中</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/0ddfdc1b18d7473f8be43c8e9279db41.png" alt="在这里插入图片描述"></p>
+<p>由于每个进程都有各自的页表，<strong>不同进程的虚拟地址可以完全一样</strong>，但是每个进程虚拟地址<strong>所映射的物理地址可相同可不同</strong>，每个进程都是独立的进行通过各自页表中虚拟地址和物理内存的映射关系去找代码和数据。</p>
+<p><img src="https://img-blog.csdnimg.cn/295fe4e3367f4924a9b8e57b48a544fd.png" alt="在这里插入图片描述"></p>
+<h2><a id="4__666"></a>4. 父子进程间的写时拷贝</h2>
+<p>通常，父子代码共享，父子再不写入时，数据也是共享的，当任意一方试图写入，便以写时拷贝的方式各自一份副本。</p>
+<p><img src="https://img-blog.csdnimg.cn/e3867dcb4ecb467bb79777276f429361.png" alt="在这里插入图片描述"></p>
+<h3><a id="1_671"></a>（1）为什么设计写时拷贝？（优点）</h3>
+<ol>
+<li>如果不设计写时拷贝为了保持进程的独立性，我们在创建进程的时候必须将所有的数据拷贝一份给子进程，但是子进程不一定会对父进程的数据进行修改，可能会浪费空间。</li>
+<li>父子进程被创建出来的时候，默认代码数据是共享的，但是如果有一个进程对数据进行修改时，那么OS系统就会自动进行写时拷贝；这样使得父子进程在数据层面上实现分离，从而自洽式低保证了进程的独立性。</li>
+<li>子进程被创建出来的时候不一定需要立刻调度，也就是站着空间但是不使用，在这一段时间内资源没有得到合理的分配使用。所以进行写时拷贝，在需要的时候分配空间，进行延时分配，保证可以使用的空间时最大的。</li>
+</ol>
+<h3><a id="2_676"></a>（2）现象解释</h3>
+<p><strong>为什么同样的地址，呈现的却是不一样的内容？</strong></p>
+<p>在创建子进程且子进程没有改写全局变量时，因为没有写入，只是读取，操作系统本着不浪费空间的目的，父子进程默认共享这段空间。进程的运行是具有独立性的。体现在数据层面上先进行独立！</p>
+<p>当子进程对数据进行修改时，<strong>OS会将子进程中断重新开辟一块空间将数据拷贝过来，然后让子进程修改新开辟的空间</strong>。<strong><mark>虽然物理地址发生了改变但是虚拟地址没有发生变化，这是改变了子进程中虚拟地址和物理地址的映射关系</mark></strong>。</p>
+<p>简单来说就是：二者虚拟地址相同，但被映射到了不同的物理内存处。所以打出来的值也是不同的！</p>
+<p>所以我们之前看到的地址相同本质时虚拟地址相同。</p>
+<h2><a id="5___688"></a>5.  为什么需要进程地址空间？（重要）</h2>
+<ol>
+<li>有了虚拟地址空间，<strong>让进程访问物理内存不能直接访问物理内存，添加了一个中间层（页表），更利于管理内存的操作</strong>。这样一来每个进程就必须要通过虚拟地址空间和页表来访问对应的物理内存，在将虚拟地址转换为物理地址后，<strong><mark>我们对物理内存的操作就必须先经过虚拟内存，然后通过页表判断是否合法</mark>（通过是否存在映射关系，权限是否允许等等），非法访问就不会出现先在物理内存中</strong>（非法访问只会存在在虚拟内存和页表中），从而保护了物理内存。</li>
+<li><strong><mark>将内存申请和内存使用的概念在时间上划分清楚</mark></strong>，通过虚拟地址空间来屏蔽进程申请内存的过程，达到进程读写内存和OS进程内存管理操作，进行软件层面上的分离。</li>
+</ol>
+<p>（1）OS系统将进程的代码进行映射时，进程不知道映射到物理内存的哪里，当进程不访问这块空间的时候，OS可能不会开辟空间；即所以OS不会在进程申请空间的时候就立刻把空间给进程(先不建立映射)，而<strong>是当进程要使用这块空间时，才会在物理内存上给进程分配</strong>（基于缺页中断进行物理内存申请:写时拷贝）。<strong><mark>只有访问的时候才开辟空间</mark></strong>。</p>
+<p>（2）我们启动一个进程时，因为调度器一直没有调度他，所以这个进程一直没有运行，此时OS系统可以不把可执行程序的代码全部价值进来，<strong><mark>可能只加载了一部分，直到调度它的时候再加载进来，这就叫做延迟加载</mark>。</strong></p>
+<p><img src="https://img-blog.csdnimg.cn/6cbf3c3c7d9e4e788ba9ee8abaa4fcf6.png" alt="在这里插入图片描述"></p>
+<ol start="3">
+<li><strong>站在CPU和应用层的角度，进程可以统一看做使用了4GB空间，而每个空间区域的相对位置是比较确定的</strong>。程序的代码和数据可能被加载到物理内存的任意位置。但是每个进程的不同段的虚拟地址是相同的，以main函数的地址为例，那么每个进程的main函数的虚拟地址都是相同的，CPU只需要存main函数的虚拟地址，然后就可以通过映射不同进程的页表，找到不同进程的main函数的代码地址，其他数据也是如此。这样就大大减少了内存管理的负担。</li>
+</ol>
+<blockquote>
+<p>OS这样设计的目的就是让每一个进程都认为自己是独占系统资源的，而如果没有地址空间，进程之间就会存在差异，而差异就意味着复杂。</p>
+</blockquote>
+<h2><a id="6__703"></a>6. 进程地址空间和可执行程序的对应关系</h2>
+<p><img src="https://img-blog.csdnimg.cn/4a9cbcca93ee4b2db6851dd402adf9c7.png" alt="在这里插入图片描述"></p>
+<h2><a id="7__707"></a>7. 重新理解进程</h2>
+<p>什么是进程？进程是被加载到内存中的程序，包括了代码，数据以及OS为之创建的数据结构（PCB（task_struct)+mm_struct(进程地址空间）+页表。而我们通过PCB能够找到对应的mm_struct</p>
+<hr>
+<h1><a id="_713"></a>七、进程终止</h1>
+<h2><a id="1__715"></a>1. 进程终止场景</h2>
+<ol>
+<li>代码运行完毕，结果正确</li>
+<li>代码运行完毕，结果不正确</li>
+<li>代码异常终止</li>
+</ol>
+<h2><a id="2__720"></a>2. 进程退出码</h2>
+<p>每种进程退出码都有对应的字符串含义，帮助用户确认，任务失败的原因。<br>
+<img src="https://img-blog.csdnimg.cn/1e6852250d7c4cfa8001641b0579a2e2.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/cfe02655997345eeafe1f2d6d2d12c1d.png" alt="在这里插入图片描述"></p>
+<ol>
+<li><strong>运行完毕，结果正确，<mark>退出码为0</mark></strong></li>
+<li><strong>运行完毕，结果不正确，<mark>退出码非0</mark></strong></li>
+</ol>
+<p>返回非0值，这是因为结果错误有多种可能，通过错误码获得对应错误信息字符串，比如我们可以用strerror来查看。</p>
+<p><img src="https://img-blog.csdnimg.cn/2e5c44c08222411cb20cbe73e2ad6433.png" alt="在这里插入图片描述"></p>
+<p>例如：<br>
+<img src="https://img-blog.csdnimg.cn/b802804ca0ea4fa592b03bc558f0a90f.png" alt="在这里插入图片描述"></p>
+<ol start="3">
+<li>代码异常终止</li>
+</ol>
+<p><img src="https://img-blog.csdnimg.cn/63edb1ef28f04e45ba7451e0750ce45b.png" alt="在这里插入图片描述"><br>
+程序崩溃时，退出码是没有意义的，return根本就没有执行 (可以通过某些方式获取原因，进程等待详谈)。</p>
+<h2><a id="3__741"></a>3. 进程退出方法</h2>
+<h3><a id="1main_743"></a>（1）从main函数返回</h3>
+<p><strong>只有在main函数中的return才表示进程退出，其他函数中的return表示该函数结束。</strong></p>
+<h4><a id="A_main_746"></a>A. 为什么main函数需要返回值？</h4>
+<p>main函数返回进程退出时的情况，称为进程退出码；是为了判断进程结束时结果是否正确。</p>
+<h4><a id="B__748"></a>B. 返回给谁？</h4>
+<p>main函数是一个函数，它也是被调用的。我们的程序main函数是入口，这个入口指的是用户级别代码的入口；main函数是由其他函数调用的，其他函数又是被OS系统调用的（当加载去将代码加载到内存的同时，加载器调用该函数）；总之是由OS系统调用的，返回给OS系统，把返回值保持到系统级别的变量中。</p>
+<h4><a id="C_0_751"></a>C. 为什么经常返回0？</h4>
+<p>返回0表示程序正常退出；非0的退出码都有对应的字符串含义，帮助用户确认任务失败的原因！</p>
+<h3><a id="2exit_754"></a>（2）调用exit</h3>
+<p>exit在任意地方调用，都代表终止进程，参数是退出码。</p>
+<p>exit与main的返回在终止进程上是一样的，但是exit在任意位置都可以调用，而只有main中的return才表示进程退出。</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token keyword">void</span> <span class="token function">exit</span><span class="token punctuation">(</span><span class="token keyword">int</span> status<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment">//status: 退出码 EXIT_SUCCESS and EXIT_FAILURE(我们_exit详谈)</span>
+</code></pre>
+<h3><a id="3_exit_766"></a>（3）调用_exit</h3>
+<blockquote>
+<p><mark>_exit和exit的差别</mark>：<br>
+<strong>exit在进程退出前会释放进程曾经占用的资源，比如刷新缓冲区<br>
+_exit会直接终止进程，不会做任何收尾工作</strong></p>
+</blockquote>
+<p>举例：<br>
+我们知道linux下向显示器刷新的策略是行刷新，即使遇到  “\n” 才进行刷新</p>
+<p><strong>而main中的return和exit除了可以退出进程外，本身都就会要求系统进行缓冲区刷新</strong><br>
+<img src="https://img-blog.csdnimg.cn/8485e8591764410fa84bb5a88dba87ff.png" alt="在这里插入图片描述"></p>
+<p><strong>而_exit在退出进程前不会刷新缓冲区</strong><br>
+<img src="https://img-blog.csdnimg.cn/f2444541436d4dc1bd3905df9877b512.png" alt="在这里插入图片描述"></p>
+<hr>
+<h1><a id="_783"></a>八、进程等待</h1>
+<h2><a id="1__785"></a>1. 什么是进程等待？</h2>
+<ul>
+<li>fork后，父进程进行wait，等待子进程执行完毕，回收子进程资源，获取子进程退出信息。</li>
+</ul>
+<h2><a id="2__787"></a>2. 为什么需要进程等待？</h2>
+<ul>
+<li>fork后，父子进程的退出顺序不确定，父进程通过进程等待的方式，<strong>回收子进程资源，获取子进程退出信息。</strong></li>
+<li>能保证时序问题：保证子进程先退出，父进程后退出。</li>
+<li>若子进程退出时，而父进程不管不顾，子进程就会先进入僵尸状态，会造成内存泄漏。所以需要通过父进程wait，释放子进程占用的资源，获取子进程退出信息。</li>
+</ul>
+<h2><a id="3__792"></a>3. 进程等待的方法</h2>
+<h3><a id="1wait_794"></a>（1）wait方法</h3>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;sys/types.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;sys/wait.h&gt;</span></span>
+
+<span class="token class-name">pid_t</span> <span class="token function">wait</span><span class="token punctuation">(</span><span class="token keyword">int</span><span class="token operator">*</span>status<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<ul>
+<li>返回值：成功返回被等待进程pid，失败返回-1。</li>
+<li>参数：输出型参数，获取子进程退出状态，不关心设置为NULL（后面详细讲）</li>
+</ul>
+<p>验证：</p>
+<p><img src="https://img-blog.csdnimg.cn/6fa1cee0c3304b13af7acaf2cb5ff117.png" alt="在这里插入图片描述"></p>
+<p>写一个监控脚本：</p>
+<pre><code class="prism language-c"><span class="token keyword">while</span> <span class="token operator">:</span><span class="token punctuation">;</span> <span class="token keyword">do</span> ps ajx <span class="token operator">|</span> head <span class="token operator">-</span><span class="token number">1</span> <span class="token operator">&amp;&amp;</span> ps ajx <span class="token operator">|</span> grep myproc <span class="token operator">|</span> grep <span class="token operator">-</span>v grep<span class="token punctuation">;</span>sleep <span class="token number">1</span><span class="token punctuation">;</span> echo <span class="token string">"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"</span><span class="token punctuation">;</span> done
+</code></pre>
+<p>运行结果说明wait可以回收僵尸进程：<br>
+<img src="https://img-blog.csdnimg.cn/f7bfd4a7e2f94476b06970c37d77ff65.png" alt="在这里插入图片描述"></p>
+<h3><a id="2waitpid_818"></a>（2）waitpid方法</h3>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;sys/types.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;sys/wait.h&gt;</span></span>
+
+<span class="token class-name">pid_t</span> <span class="token function">waitpid</span><span class="token punctuation">(</span><span class="token class-name">pid_t</span> pid<span class="token punctuation">,</span> <span class="token keyword">int</span> <span class="token operator">*</span>status<span class="token punctuation">,</span> <span class="token keyword">int</span> options<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<ul>
+<li>返回值<br>
+（1）当<strong>正常返回的时候</strong>waitpid返回收集到的子进程的进程ID；<br>
+（2）如果设置了选项WNOHANG,而调用中waitpid发现<strong>没有已退出的子进程可收集</strong>,则返回0；<br>
+（3）如果<strong>调用中出错</strong>,则返回-1,这时errno会被设置成相应的值以指示错误所在；</li>
+<li>参数：<br>
+（1）<strong><mark>pid</mark></strong>：<br>
+为-1时表示等待任意一个子进程，与wait相同；pid&gt;0时，表示等待其进程ID与pid相等的子进程。<br>
+（2）<strong><mark>status</mark></strong>:<br>
+WIFEXITED(status): 若为正常终止子进程返回的状态，则为真。（查看进程是否是正常退出）；<br>
+WEXITSTATUS(status): 若WIFEXITED非零，提取子进程退出码。（若子进程正常终止，查看进程的退出码）<br>
+（3） <strong><mark>options</mark></strong>:<br>
+WNOHANG: 若pid指定的子进程没有结束，则waitpid()函数返回0，不予以等待。若正常结束，则返回该子进程的ID。</li>
+</ul>
+<h2><a id="4_status_839"></a>4. 通过status获取子进程退出信息</h2>
+<p>刚刚所写的俩个进程等待函数都有status这个参数，接下来来详细解释一下这个参数的作用</p>
+<p>进程等待成功不表示子进程运行成功，进程是否正常运行完毕，结果是否正确是需要status这个参数判断的。</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;sys/types.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span><span class="token string">&lt;sys/wait.h&gt;</span></span>
+
+<span class="token class-name">pid_t</span> <span class="token function">wait</span><span class="token punctuation">(</span><span class="token keyword">int</span><span class="token operator">*</span>status<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token class-name">pid_t</span> <span class="token function">waitpid</span><span class="token punctuation">(</span><span class="token class-name">pid_t</span> pid<span class="token punctuation">,</span> <span class="token keyword">int</span> <span class="token operator">*</span>status<span class="token punctuation">,</span> <span class="token keyword">int</span> options<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>status是一个输出形参数，本质上指向一个整形大小的空间，它不是整体使用的，里面存放了进程退出的信息（如：终止信号，退出码等）；最终让父进程通过status得到子进程执行的结果。</p>
+<p><strong>status表示进程退出三种情况的方式：</strong><br>
+<img src="https://img-blog.csdnimg.cn/060a7208724546488f51cbd45c1b1f78.png" alt="在这里插入图片描述"><br>
+于是我们可以通过对status进行位操作来获取异常信号和退出码。</p>
+<p><strong>进程正常结束的情况</strong>：</p>
+<p><img src="https://img-blog.csdnimg.cn/71ad11da5178487b9aca126921e90445.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/105e5c006f584ef6826b62d53b24096d.png" alt="在这里插入图片描述"></p>
+<p><strong>进程异常终止的情况：</strong></p>
+<p><img src="https://img-blog.csdnimg.cn/94d02677b87b4818bacd05a341458cce.png" alt="在这里插入图片描述"><br>
+此时退出码是无效的，退出信号是我们发送的信号。</p>
+<p><img src="https://img-blog.csdnimg.cn/c46052909dd545d39f85a660e687cda6.png" alt="在这里插入图片描述"></p>
+<p><strong><mark>我们也可以通过一组不用进行位操作的宏来获取退出码、判断有无异常信号</mark>。</strong></p>
+<pre><code class="prism language-c"> <span class="token function">WIFEXITED</span><span class="token punctuation">(</span>status<span class="token punctuation">)</span>    查看进程是否是正常退出。若为正常终止子进程返回的状态，则为真。
+ <span class="token function">WEXITSTATUS</span><span class="token punctuation">(</span>status<span class="token punctuation">)</span>  查看进程的退出码。若WIFEXITED非零，提取子进程退出码。
+</code></pre>
+<p><img src="https://img-blog.csdnimg.cn/16ff39bb83bf4e819c9aecd07f7bea74.png" alt="在这里插入图片描述"></p>
+<p><img src="https://img-blog.csdnimg.cn/db054def7a604e479f9d9e20a9734a91.png" alt="在这里插入图片描述"></p>
+<h2><a id="5_options_882"></a>5. 通过options控制进程等待方式</h2>
+<pre><code class="prism language-c">pid_ t <span class="token function">waitpid</span><span class="token punctuation">(</span><span class="token class-name">pid_t</span> pid<span class="token punctuation">,</span> <span class="token keyword">int</span> <span class="token operator">*</span>status<span class="token punctuation">,</span> <span class="token keyword">int</span> options<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>waitpid的第三个参数options，用来设置等待方式。</p>
+<blockquote>
+<p><strong>0：默认阻塞等待</strong><br>
+<strong>WNOHANG：设置为非阻塞等待</strong></p>
+</blockquote>
+<h3><a id="1_892"></a>（1）阻塞等待</h3>
+<p>wait和waitpid都采用的是阻塞式等待：子进程不退出，父进程不结束；子进程结束后，父进程通过waitpid的方式才会进行返回，否则不进行返回。</p>
+<ul>
+<li><strong>阻塞的本质：意味着进程的PCB被放入等待队列中，并将进程状态由R改为S状态。</strong></li>
+<li><strong>返回的本质：子进程退出时，父进程的PCB从等待队列拿回R队列，从而被CPU调度。</strong></li>
+</ul>
+<p>阻塞等待的情况：<br>
+<img src="https://img-blog.csdnimg.cn/bea01b4289c341b094689291bab24bb8.png" alt="在这里插入图片描述"></p>
+<h3><a id="2_902"></a>（2）非阻塞等待</h3>
+<p>当options参数被设置为WNOHANG，那么waitpid等待进程的方式就会变为<strong>非阻塞等待。</strong></p>
+<p>options设置为0的时候（不设置为WNOHANG），此时waitpid为阻塞等待；此时waitpid的返回值要<mark>么<strong>大于0</strong></mark>，<strong><mark>表示等待成功了</mark></strong>(返回子进程的pid)，<strong><mark>小于0表示等待失败</mark></strong>(返回-1)；但是options设置为WHOHANG的时候，就会出现低三种状况：调用waitpid成功了(检测成功)，但是<strong>子进程没有退出，那么此时wiatpid就会返回0</strong></p>
+<p>父进程非阻塞等待的时候，wiatpid返回值的情况总结：</p>
+<ul>
+<li><strong>子进程退出，waitpid返回成功（pid）</strong></li>
+<li><strong>子进程退出，waitpid返回失败（-1）</strong>：比如父进程等待的进程不存在，等错了</li>
+<li><strong>子进程没有退出，waitpid返回 0</strong>：如果waitpid发现没有已退出的子进程可收集，则返回0</li>
+</ul>
+<p><img src="https://img-blog.csdnimg.cn/548b4cfefe0f4101ab0bd0bf675896e9.png" alt="在这里插入图片描述"></p>
+<p><img src="https://img-blog.csdnimg.cn/c407d29ad72b4d598b5b27d10cff04c4.png" alt="在这里插入图片描述"></p>
+<hr>
+<h1><a id="_918"></a>九、进程程序替换</h1>
+<p>父进程通过fork（）函数创建一个子进程，子进程将和父进程运行相同的代码，但创建子进程的大多情况，是希望能够运行一些其他的程序，这时候就需要通过<strong>程序替换</strong>。</p>
+<h2><a id="1__922"></a>1. 替换原理</h2>
+<p>用fork创建子进程后，子进程执行的是和父进程相同的程序（但有可能执行不同的代码分支），若想让子进程执行另一个程序，往往需要调用一种exec函数。</p>
+<p>当进程调用一种exec函数时，该进程的用户空间<strong>代码和数据</strong>完全被新程序替换，并从新程序的启动例程开始执行。</p>
+<p><img src="https://img-blog.csdnimg.cn/fa44d19ddf6747f989ab0f135f9336fc.png" alt="在这里插入图片描述"></p>
+<p>注意：</p>
+<ol>
+<li>调用exec进行进程程序替换的时候，只是将磁盘上的代码和数据替换当前进程的代码和数据，重新建立一个映射关系，<strong><mark>没有创建新的进程</mark></strong>。</li>
+<li>子进程刚被创建时，与父进程共享代码和数据，但当子进程需要进行进程程序替换时，也就意味着子进程需要对其数据和代码进行写入操作，这时便需要将父子进程共享的代码和数据进行写时拷贝，<strong>此后父子进程的代码和数据也就分离了，因此<mark>子进程进行程序替换后不会影响父进程的代码和数据</mark>。</strong></li>
+<li>当前进程一旦进行了进程程序替换，该进程在替换函数后面的代码就不会执行。</li>
+<li>只要进程的程序替换成功，就不会执行后续代码，因此，exec*函数成功是不需要进行返回值检测；只要返回了，就一定是因为调用失败了，直接退出程序即可。</li>
+</ol>
+<p><img src="https://img-blog.csdnimg.cn/175d5974e02e49ea87aaab892d31975c.png" alt="在这里插入图片描述"></p>
+<h2><a id="2__937"></a>2. 六种进程替换函数</h2>
+<h3><a id="1_939"></a>（1）替换函数</h3>
+<p>有六种以exec开头的函数,统称exec函数:</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span><span class="token expression">`</span></span>
+
+<span class="token keyword">int</span> <span class="token function">execl</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>path<span class="token punctuation">,</span> <span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>arg<span class="token punctuation">,</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">int</span> <span class="token function">execv</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>path<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span><span class="token keyword">const</span> argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">int</span> <span class="token function">execlp</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>file<span class="token punctuation">,</span> <span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>arg<span class="token punctuation">,</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">int</span> <span class="token function">execvp</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>file<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span><span class="token keyword">const</span> argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">int</span> <span class="token function">execle</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>path<span class="token punctuation">,</span> <span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>arg<span class="token punctuation">,</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">,</span><span class="token keyword">char</span> <span class="token operator">*</span><span class="token keyword">const</span> envp<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">int</span> <span class="token function">execve</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>path<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span><span class="token keyword">const</span> argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span><span class="token keyword">const</span> envp<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<h3><a id="2_952"></a>（2）六种替换函数的关系</h3>
+<p>这些函数名看起来很容易混淆，但是理解它们的命名含义就很好记</p>
+
+<table>
+<thead>
+<tr>
+<th>替换函数接口</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>l（list）</td>
+<td>采用列表的方式</td>
+</tr>
+<tr>
+<td>v(vector)</td>
+<td>采用数组的方式</td>
+</tr>
+<tr>
+<td>p（path）</td>
+<td>自动搜索环境变量PATH</td>
+</tr>
+<tr>
+<td>e（env）</td>
+<td>自定义环境变量</td>
+</tr>
+</tbody>
+</table><ul>
+<li><strong><mark>其中 L 和 V 表示传参的方式</mark>：</strong><br>
+“L”表示使用参数采集列表，将函数选项的字符串以函数参数的形式一个一个传入<br>
+“V”表示参数通过数组的方式传入，把函数选项的字符串整理到argv这个字符数组中，然后一次性传入</li>
+<li><strong><mark>“P”表示只要传入要执行文件的文件名称</mark>就可以了</strong>，不需要传入路径；而不带“P”的需要传入可执行文件的路径及名称。（解析：因为“P”的表示该<strong>函数会默认地在环境变量“PATH”中寻找可执行程序</strong>，所以只需要提供可执行程序的名字，不需要用户主动填写可执行程序的路径）</li>
+<li><strong>“E”表示不使用当前环境变量，需要自己设置环境变量</strong>；没“E”，则使用当前环境变量，无需设置环境变量</li>
+</ul>
+<p><img src="https://img-blog.csdnimg.cn/8f2afa00e48c43bfaefb992e5db5b931.png" alt="在这里插入图片描述"></p>
+<h3><a id="3execl_971"></a>（3）execl</h3>
+<pre><code class="prism language-c"><span class="token keyword">int</span> <span class="token function">execl</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>path<span class="token punctuation">,</span> <span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>arg0<span class="token punctuation">,</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span> <span class="token comment">/*, (char *)0 */</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>execl()其中后缀 “l” 代表 list 也就是参数列表的意思，第一参数 path 字符指针所指向要执行的文件路径， 接下来的参数代表执行该文件时传递的参数列表：argv[0],argv[1]… 最后一个参数须用空指针NULL作结束</p>
+<p><img src="https://img-blog.csdnimg.cn/41e94c69063d4e6d8df244c9c40d3ccd.png" alt="在这里插入图片描述"></p>
+<h3><a id="4execv_982"></a>（4）execv</h3>
+<pre><code class="prism language-c"><span class="token keyword">int</span> <span class="token function">execv</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>path<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span><span class="token keyword">const</span> argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>在环境变量一节讲过，main函数是可以携带参数的，argv是一个指针数组，指针指向命令行参数字符串。我们可以理解为，通过exec函数，把argv给了ls程序的main函数。</p>
+<p><img src="https://img-blog.csdnimg.cn/31553aab44c64a50b0216594fe7b370d.png" alt="在这里插入图片描述"></p>
+<h3><a id="5execlpexecvp_993"></a>（5）execlp和execvp</h3>
+<p>带p，表示会自动环境变量PATH中搜索，只需要知道程序名即可。</p>
+<pre><code class="prism language-c"><span class="token function">execlp</span><span class="token punctuation">(</span><span class="token string">"ls"</span><span class="token punctuation">,</span> <span class="token string">"ls"</span><span class="token punctuation">,</span> <span class="token string">"-a"</span><span class="token punctuation">,</span> <span class="token string">"-l"</span><span class="token punctuation">,</span> <span class="token string">"-n"</span><span class="token punctuation">,</span> <span class="token constant">NULL</span><span class="token punctuation">)</span><span class="token punctuation">;</span>                                                                                                             
+<span class="token keyword">char</span><span class="token operator">*</span> argv<span class="token punctuation">[</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{</span> <span class="token string">"ls"</span><span class="token punctuation">,</span> <span class="token string">"-a"</span><span class="token punctuation">,</span> <span class="token string">"-l"</span><span class="token punctuation">,</span> <span class="token string">"-n"</span><span class="token punctuation">,</span> <span class="token constant">NULL</span><span class="token punctuation">}</span><span class="token punctuation">;</span>   
+<span class="token function">execvp</span><span class="token punctuation">(</span><span class="token string">"ls"</span><span class="token punctuation">,</span> argv<span class="token punctuation">)</span><span class="token punctuation">;</span>	
+</code></pre>
+<h3><a id="6execleexecve_1001"></a>（6）execle和execve</h3>
+<pre><code class="prism language-c"><span class="token keyword">int</span> <span class="token function">execle</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>path<span class="token punctuation">,</span> <span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>arg<span class="token punctuation">,</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">,</span><span class="token keyword">char</span> <span class="token operator">*</span><span class="token keyword">const</span> envp<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">int</span> <span class="token function">execve</span><span class="token punctuation">(</span><span class="token keyword">const</span> <span class="token keyword">char</span> <span class="token operator">*</span>path<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span><span class="token keyword">const</span> argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span><span class="token keyword">const</span> envp<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>带e，表示自己维护环境变量，也就是我不想用你给我传的默认环境变量。（execve同理，只不过用数组传递命令行参数</p>
+<p><img src="https://img-blog.csdnimg.cn/ca366f331b694a2796421850435a7f7a.png" alt="在这里插入图片描述"></p>
+<p>直接调用test时MYENV为空，而系统默认给的环境变量ENV=…；但当myload调用test时，给子进程test传入了一个环境变量MYENV，而此时系统默认给的环境变量消失了，OS系统没有给子进程该环境变量。所以要想保留原理的环境变量就要把OS系统给的环境变量添加到自定义的环境变量中。</p>
+<p><strong>注意：如何使用makefile一次性生成俩个可执行文件？</strong></p>
+<p><img src="https://img-blog.csdnimg.cn/5811585d4b754f45bfef0e9863eb033a.png" alt="在这里插入图片描述"></p>
+<h3><a id="7exec_1019"></a>（7）exec*函数关系图</h3>
+<p><img src="https://img-blog.csdnimg.cn/ef67ee58c4294b56a549e3a79570016d.png" alt="在这里插入图片描述"></p>
+<hr>
+<h1><a id="shell_1025"></a>十、实现一个简陋的shell</h1>
+<p>shell从用户读入字符串"ls"。shell建立一个新的进程，然后在那个进程中运行ls程序并等待那个进程结束。<br>
+<img src="https://img-blog.csdnimg.cn/f8cbc21e747e4b1b9b1e2a7bb06df10c.png" alt="在这里插入图片描述"></p>
+<p><strong>所以写一个shell 命令行解释器，需要循环以下过程</strong></p>
+<ul>
+<li>打印提示行</li>
+<li>获取命令行</li>
+<li>解析命令行</li>
+<li>fork创建子进程；替换子进程</li>
+<li>父进程等待子进程退出</li>
+</ul>
+<h2><a id="1__1039"></a>1. 打印提示行</h2>
+<p><strong>[用户名@主机名 路径]提示符</strong>，这些都可以通过系统调用获取到，但是这里就直接写死。</p>
+<p>另外，写进度条时候就知道，显示器的刷新策略就是<strong>行刷新</strong>，<strong>不想换行还要刷新，可以调用fflush(stdout);</strong></p>
+<h2><a id="2__1044"></a>2. 获取命令行</h2>
+<p>由于我们输入命令行是一行一行输入的，所以获取命令行时可以使用fgets()函数，但是这个函数会将换行符号一起吸收，所以我们需要在字符串的最后一位将‘\n’改为‘\0’。</p>
+<p>fgets的原型为：</p>
+<pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token keyword">char</span> <span class="token operator">*</span><span class="token function">fgets</span><span class="token punctuation">(</span><span class="token keyword">char</span> <span class="token operator">*</span>s<span class="token punctuation">,</span> <span class="token keyword">int</span> size<span class="token punctuation">,</span> FILE <span class="token operator">*</span>stream<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<h2><a id="3__1053"></a>3. 解析命令行</h2>
+<p>解析字符串，要分割串，用strtok。传参给要解析的字符串、分隔字符串，返回子串；第二次提取时，把还要提取的字符串给NULL，我们把子串儿都提取到char*的指针数组argv中</p>
+<p><img src="https://img-blog.csdnimg.cn/3a152908e9e442ff9d5ae9ee07ae9cc9.png" alt="在这里插入图片描述"></p>
+<p>strtok函数说明：<br>
+当strtok()在参数s的字符串中发现第二个参数中包含的分割字符时,则会将该字符改为\0 字符。<br>
+在第一次调用时，strtok()必需给予参数s字符串，往后的调用则将参数s设置成NULL。每次调用成功则返回指向被分割出片段的指针。</p>
+<h2><a id="4_fork_1063"></a>4. fork创建子进程，替换进程</h2>
+<p>不能用当前进程直接替换，会把前面的解析代码覆盖掉，因此要创建子进程。同时，父进程需要等待子进程退出。这也就解释了为什么在bash上执行出错了，echo $? 就能拿到退出码，这是因为子进程的退出结果是可以wait拿到的。</p>
+<h2><a id="5__1067"></a>5. 内建命令</h2>
+<p>由于我们此次只实现一次简陋的shell，因此我们暂时不会实现对于|管道和&gt;重定向等操作的处理方法（需要IO，文件知识）。但我们使用 cd…命令的时候，路径没有回退，<strong>这是因为执行回退的是子进程，并非是父进程bash.</strong></p>
+<p>fork要执行的命令是第三方命令，对于cd，现在我们不想再执行第三方命令，以内建命令方式运行(即不创建子进程，让父进程shell自己执行)，实际上相当于调用了自己的一个函数。更改当前进程路径，有一个系统调用接口chdir。</p>
+<p><img src="https://img-blog.csdnimg.cn/92fee2d0c5f24bc29c4310c40bfb70b8.png" alt="在这里插入图片描述"></p>
+<p>于是我们在添加一个检测是否要执行内建命令，我们这里只做的简单的匹配，且执行了内建命令，直接continue继续解析.</p>
+<h2><a id="6_myshell_1077"></a>6. myshell实现</h2>
+<p><img src="https://img-blog.csdnimg.cn/24974095506f4dbbb083f3b7741e4b0c.png" alt="在这里插入图片描述"><br>
+<img src="https://img-blog.csdnimg.cn/0e0ed64c8bd94327a35377b1b91503bc.png" alt="在这里插入图片描述"></p>
+<hr>
+</div>
+</body>
+
+</html>
